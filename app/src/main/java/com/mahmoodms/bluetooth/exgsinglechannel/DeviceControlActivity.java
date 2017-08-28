@@ -311,15 +311,16 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         }
     }
 
-    public void exportFileMPU(double AcX, double AcY, double AcZ, double GyX, double GyY, double GyZ) throws IOException {
+    public void exportFileMPU(double timestamp, double AcX, double AcY, double AcZ, double GyX, double GyY, double GyZ) throws IOException {
         if (fileSaveInitialized) {
-            String[] writeCSVValue = new String[6];
-            writeCSVValue[0] = AcX + "";
-            writeCSVValue[1] = AcY + "";
-            writeCSVValue[2] = AcZ + "";
-            writeCSVValue[3] = GyX + "";
-            writeCSVValue[4] = GyY + "";
-            writeCSVValue[5] = GyZ + "";
+            String[] writeCSVValue = new String[7];
+            writeCSVValue[0] = timestamp + "";
+            writeCSVValue[1] = AcX + "";
+            writeCSVValue[2] = AcY + "";
+            writeCSVValue[3] = AcZ + "";
+            writeCSVValue[4] = GyX + "";
+            writeCSVValue[5] = GyY + "";
+            writeCSVValue[6] = GyZ + "";
             csvWriter2.writeNext(writeCSVValue, false);
         }
     }
@@ -565,6 +566,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
             Log.e(TAG, "onCharacteristic Read Error" + status);
         }
     }
+    public static final double INCREMENT_31_25 = 0.032;
     public static final double INCREMENT_2K = 0.0005;
     public static final int DIV_250 = 8;
     public static final double INCREMENT_4K = 0.00025;
@@ -577,8 +579,10 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     private short dataptCh2 = 0;
     private double[] mDataPlotBufferCh1 = new double[BUFFER_SIZE];
     private double[] mDataPlotBufferCh2 = new double[BUFFER_SIZE];
-    private int timestampVal = 0;
+    private int timestampIdxECG = 0;
+    private int timestampIdxMPU = 0;
     private double[] timestamps;
+    private double[] timestampsMPU;
     private int[] ecgCh1;
     private int[] ecgCh2;
     private short mDataPlotBufferIndexCh1 = 0;
@@ -599,7 +603,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
             timestamps = new double[dataEEGBytes.length/3];
             for (int i = 0; i < dataEEGBytes.length/3; i++) {
                 ecgCh1[i] = unsignedToSigned(unsignedBytesToInt(dataEEGBytes[3*i+2],dataEEGBytes[3*i+1],dataEEGBytes[3*i]),24);
-                timestamps[i] = (double)timestampVal*(INCREMENT_2K);
+                timestamps[i] = (double) timestampIdxECG *(INCREMENT_2K);
                 if(dataptCh1 == DIV_250) { //32 for 8k, 16 for 4k, 8 for 2k
                     double doubleValue = ((double)ecgCh1[i]/8388607.0)*2.25;
                     dataptCh1 = 0;
@@ -615,7 +619,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                 }
                 if(synchronized_2ch) {
                     dataptCh1++;
-                    timestampVal++;
+                    timestampIdxECG++;
                 }
             }
         }
@@ -651,8 +655,11 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
             getDataRateBytes2(dataMPU.length);
             int IntArray[] = new int[dataMPU.length/2];
             double doublesArray[] = new double[dataMPU.length/2];
+            timestampsMPU = new double[dataMPU.length/2];
             for (int i = 0; i < dataMPU.length/2; i++) {
                 IntArray[i] = unsignedToSigned(unsignedBytesToInt(dataMPU[2*i+1],dataMPU[2*i]),16);
+                timestampsMPU[i] = (double)timestampIdxMPU*(INCREMENT_31_25);
+                timestampIdxMPU++;
             }
             for (int i = 0; i < IntArray.length; i+=6) {
                 doublesArray[i] = 16*(double)IntArray[i]/65535.0;
@@ -666,7 +673,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                 mGraphAdapterMotionAZ.addDataPointGeneric(mMotionGraphPlotIndex, doublesArray[i+2], 0.032);
                 mMotionGraphPlotIndex++;
             }
-            writeToDiskMPU(doublesArray);
+            writeToDiskMPU(timestampsMPU, doublesArray);
         }
 
         if (eeg_ch1_data_on && eeg_ch2_data_on) {
@@ -759,11 +766,11 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         return b & 0xFF;
     }
 
-    private void writeToDiskMPU(final double[] dataArray) {
+    private void writeToDiskMPU(final double[] timestampsMPU, final double[] dataArray) {
         if(dataArray.length>6) {
             for (int i = 0; i < dataArray.length; i+=6) {
                 try {
-                    exportFileMPU(dataArray[i],dataArray[i+1],dataArray[i+2],dataArray[i+3],dataArray[i+4],dataArray[i+5]);
+                    exportFileMPU(timestampsMPU[i], dataArray[i],dataArray[i+1],dataArray[i+2],dataArray[i+3],dataArray[i+4],dataArray[i+5]);
                 } catch (IOException e) {
                     Log.e("IOException", e.toString());
                 }
