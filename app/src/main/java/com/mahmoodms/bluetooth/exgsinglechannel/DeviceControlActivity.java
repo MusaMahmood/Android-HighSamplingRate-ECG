@@ -662,12 +662,12 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                 timestampIdxMPU++;
             }
             for (int i = 0; i < IntArray.length; i+=6) {
-                doublesArray[i] = 16*(double)IntArray[i]/65535.0;
-                doublesArray[i+1] = 16*(double)IntArray[i+1]/65535.0;
-                doublesArray[i+2] = 16*(double)IntArray[i+2]/65535.0;
-                doublesArray[i+3] = 2000*(double)IntArray[i+3]/65535.0;
-                doublesArray[i+4] = 2000*(double)IntArray[i+4]/65535.0;
-                doublesArray[i+5] = 2000*(double)IntArray[i+5]/65535.0;
+                doublesArray[i] = 32*(double)IntArray[i]/65535.0;
+                doublesArray[i+1] = 32*(double)IntArray[i+1]/65535.0;
+                doublesArray[i+2] = 32*(double)IntArray[i+2]/65535.0;
+                doublesArray[i+3] = 4000*(double)IntArray[i+3]/65535.0;
+                doublesArray[i+4] = 4000*(double)IntArray[i+4]/65535.0;
+                doublesArray[i+5] = 4000*(double)IntArray[i+5]/65535.0;
                 mGraphAdapterMotionAX.addDataPointGeneric(mMotionGraphPlotIndex, doublesArray[i], 0.032);
                 mGraphAdapterMotionAY.addDataPointGeneric(mMotionGraphPlotIndex, doublesArray[i+1], 0.032);
                 mGraphAdapterMotionAZ.addDataPointGeneric(mMotionGraphPlotIndex, doublesArray[i+2], 0.032);
