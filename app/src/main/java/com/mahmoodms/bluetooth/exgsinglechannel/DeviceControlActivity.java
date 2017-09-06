@@ -655,11 +655,10 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
             getDataRateBytes2(dataMPU.length);
             int IntArray[] = new int[dataMPU.length/2];
             double doublesArray[] = new double[dataMPU.length/2];
-            timestampsMPU = new double[dataMPU.length/2];
+            timestampsMPU = new double[dataMPU.length/12];
             for (int i = 0; i < dataMPU.length/2; i++) {
                 IntArray[i] = unsignedToSigned(unsignedBytesToInt(dataMPU[2*i+1],dataMPU[2*i]),16);
-                timestampsMPU[i] = (double)timestampIdxMPU*(INCREMENT_31_25);
-                timestampIdxMPU++;
+
             }
             for (int i = 0; i < IntArray.length; i+=6) {
                 doublesArray[i] = 32*(double)IntArray[i]/65535.0;
@@ -672,6 +671,10 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                 mGraphAdapterMotionAY.addDataPointGeneric(mMotionGraphPlotIndex, doublesArray[i+1], 0.032);
                 mGraphAdapterMotionAZ.addDataPointGeneric(mMotionGraphPlotIndex, doublesArray[i+2], 0.032);
                 mMotionGraphPlotIndex++;
+            }
+            for (int i = 0; i < dataMPU.length/12; i++) {
+                timestampsMPU[i] = (double)timestampIdxMPU*(INCREMENT_31_25);
+                timestampIdxMPU++;
             }
             writeToDiskMPU(timestampsMPU, doublesArray);
         }
