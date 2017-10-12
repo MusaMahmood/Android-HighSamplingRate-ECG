@@ -45,6 +45,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.Locale;
 
 /**
  * Created by mahmoodms on 5/31/2016.
@@ -558,8 +559,8 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         Log.i(TAG, "onCharacteristicRead");
         if (status == BluetoothGatt.GATT_SUCCESS) {
             if (AppConstant.CHAR_BATTERY_LEVEL.equals(characteristic.getUuid())) {
-                batteryLevel = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 0);
-                updateBatteryStatus(batteryLevel, batteryLevel + " %");
+                batteryLevel = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT16, 0);
+                updateBatteryStatus(batteryLevel);
                 Log.i(TAG, "Battery Level :: " + batteryLevel);
             }
         } else {
@@ -593,6 +594,12 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     @Override
     public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
         //TODO: ADD BATTERY MEASURE CAPABILITY IN FIRMWARE: (ble_ADC)
+        if (AppConstant.CHAR_BATTERY_LEVEL.equals(characteristic.getUuid())) {
+            batteryLevel = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT16, 0);
+            updateBatteryStatus(batteryLevel);
+            Log.i(TAG, "Battery Level :: " + batteryLevel);
+        }
+
         if (AppConstant.CHAR_EEG_CH1_SIGNAL.equals(characteristic.getUuid())) {
             byte[] dataEEGBytes = characteristic.getValue();
             if (!eeg_ch1_data_on) {
@@ -652,7 +659,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
 
         if(AppConstant.CHAR_MPU_COMBINED.equals(characteristic.getUuid())) {
             byte[] dataMPU = characteristic.getValue();
-            getDataRateBytes2(dataMPU.length);
+            getDataRateBytes2(dataMPU.length); //+=240
             int IntArray[] = new int[dataMPU.length/2];
             double doublesArray[] = new double[dataMPU.length/2];
             timestampsMPU = new double[dataMPU.length/12];
@@ -660,7 +667,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                 IntArray[i] = unsignedToSigned(unsignedBytesToInt(dataMPU[2*i+1],dataMPU[2*i]),16);
 
             }
-            for (int i = 0; i < IntArray.length; i+=6) {
+            for (int i = 0; i < IntArray.length/*120*/; i+=6) {
                 doublesArray[i] = 32*(double)IntArray[i]/65535.0;
                 doublesArray[i+1] = 32*(double)IntArray[i+1]/65535.0;
                 doublesArray[i+2] = 32*(double)IntArray[i+2]/65535.0;
@@ -982,12 +989,35 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
             }
         });
     }
-
-    private void updateBatteryStatus(final int percent, final String status) {
+    private void updateBatteryStatus(final int integerValue) {
+        final String status;
+        double convertedBatteryVoltage = ((double) integerValue/(4096.0))*7.20;
+        double finalPercent = (convertedBatteryVoltage/4.2)*100;
+        Log.e(TAG,"Battery Integer Value: "+String.valueOf(integerValue));
+        Log.e(TAG,"ConvertedBatteryVoltage: "+String.valueOf(convertedBatteryVoltage));
+        status = String.format(Locale.US,"%.2f",convertedBatteryVoltage)+"V : "+String.format(Locale.US,"%.2f",finalPercent)+"%";
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                if (percent <= batteryWarning) {
+                if (integerValue <= batteryWarning) {
+                    mBatteryLevel.setTextColor(Color.RED);
+                    mBatteryLevel.setTypeface(null, Typeface.BOLD);
+                    Toast.makeText(getApplicationContext(), "Charge Battery, Battery Low " + status, Toast.LENGTH_SHORT).show();
+                } else {
+                    mBatteryLevel.setTextColor(Color.GREEN);
+                    mBatteryLevel.setTypeface(null, Typeface.BOLD);
+                }
+                mBatteryLevel.setText(status);
+            }
+        });
+    }
+    private void updateBatteryStatus(final int integerValue, final String status) {
+        double convertedBatteryVoltage = ((double) integerValue/(4096.0))*7.20;
+        Log.e(TAG,"ConvertedBatteryVoltage: "+String.valueOf(convertedBatteryVoltage));
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (integerValue <= batteryWarning) {
                     mBatteryLevel.setTextColor(Color.RED);
                     mBatteryLevel.setTypeface(null, Typeface.BOLD);
                     Toast.makeText(getApplicationContext(), "Charge Battery, Battery Low " + status, Toast.LENGTH_SHORT).show();
