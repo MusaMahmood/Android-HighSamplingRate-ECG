@@ -49,6 +49,7 @@ import java.util.Locale;
 
 /**
  * Created by mahmoodms on 5/31/2016.
+ *
  */
 
 public class DeviceControlActivity extends Activity implements BluetoothLe.BluetoothLeListener {
@@ -581,6 +582,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     private double[] mDataPlotBufferCh1 = new double[BUFFER_SIZE];
     private double[] mDataPlotBufferCh2 = new double[BUFFER_SIZE];
     private int timestampIdxECG = 0;
+    private int byteResolution = 3;
     private int timestampIdxMPU = 0;
     private double[] timestamps;
     private double[] timestampsMPU;
@@ -606,28 +608,32 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                 eeg_ch1_data_on = true;
             }
             getDataRateBytes(dataEEGBytes.length);
-            ecgCh1 = new int[dataEEGBytes.length/3];
-            timestamps = new double[dataEEGBytes.length/3];
-            for (int i = 0; i < dataEEGBytes.length/3; i++) {
-                ecgCh1[i] = unsignedToSigned(unsignedBytesToInt(dataEEGBytes[3*i+2],dataEEGBytes[3*i+1],dataEEGBytes[3*i]),24);
-                timestamps[i] = (double) timestampIdxECG *(INCREMENT_2K);
-                if(dataptCh1 == DIV_250) { //32 for 8k, 16 for 4k, 8 for 2k
-                    double doubleValue = ((double)ecgCh1[i]/8388607.0)*2.25;
-                    dataptCh1 = 0;
-                    if(mDataPlotBufferIndexCh1 == BUFFER_SIZE) {
-                        mDataPlotBufferIndexCh1 = 0;
-                        for (int j = 0; j < BUFFER_SIZE; j++) {
-                            mGraphAdapterCh1.addDataPoint(mDataPlotBufferCh1[j], mGraphPlotIndexCh1 - BUFFER_SIZE + j);
+            ecgCh1 = new int[dataEEGBytes.length/byteResolution];
+            timestamps = new double[dataEEGBytes.length/byteResolution];
+            if(byteResolution == 3) {
+                for (int i = 0; i < dataEEGBytes.length/3; i++) {
+                    ecgCh1[i] = unsignedToSigned(unsignedBytesToInt(dataEEGBytes[3*i+2],dataEEGBytes[3*i+1],dataEEGBytes[3*i]),24);
+                    timestamps[i] = (double) timestampIdxECG *(INCREMENT_2K);
+                    if(dataptCh1 == DIV_250) { //32 for 8k, 16 for 4k, 8 for 2k
+                        double doubleValue = ((double)ecgCh1[i]/8388607.0)*2.25;
+                        dataptCh1 = 0;
+                        if(mDataPlotBufferIndexCh1 == BUFFER_SIZE) {
+                            mDataPlotBufferIndexCh1 = 0;
+                            for (int j = 0; j < BUFFER_SIZE; j++) {
+                                mGraphAdapterCh1.addDataPoint(mDataPlotBufferCh1[j], mGraphPlotIndexCh1 - BUFFER_SIZE + j);
+                            }
                         }
+                        mDataPlotBufferCh1[mDataPlotBufferIndexCh1] = doubleValue;
+                        mDataPlotBufferIndexCh1++;
+                        mGraphPlotIndexCh1++;
                     }
-                    mDataPlotBufferCh1[mDataPlotBufferIndexCh1] = doubleValue;
-                    mDataPlotBufferIndexCh1++;
-                    mGraphPlotIndexCh1++;
+                    if(synchronized_2ch) {
+                        dataptCh1++;
+                        timestampIdxECG++;
+                    }
                 }
-                if(synchronized_2ch) {
-                    dataptCh1++;
-                    timestampIdxECG++;
-                }
+            } else if (byteResolution == 2) {
+
             }
         }
 
@@ -665,16 +671,15 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
             timestampsMPU = new double[dataMPU.length/12];
             for (int i = 0; i < dataMPU.length/2; i++) {
                 IntArray[i] = unsignedToSigned(unsignedBytesToInt(dataMPU[2*i+1],dataMPU[2*i]),16);
-
             }
             for (int i = 0; i < IntArray.length/*120*/; i+=6) {
-                doublesArray[i] = 32*(double)IntArray[i]/65535.0;
-                doublesArray[i+1] = 32*(double)IntArray[i+1]/65535.0;
-                doublesArray[i+2] = 32*(double)IntArray[i+2]/65535.0;
+                doublesArray[ i ] = 32 * (double)IntArray[ i ]/65535.0;
+                doublesArray[i+1] = 32 * (double)IntArray[i+1]/65535.0;
+                doublesArray[i+2] = 32 * (double)IntArray[i+2]/65535.0;
                 doublesArray[i+3] = 4000*(double)IntArray[i+3]/65535.0;
                 doublesArray[i+4] = 4000*(double)IntArray[i+4]/65535.0;
                 doublesArray[i+5] = 4000*(double)IntArray[i+5]/65535.0;
-                mGraphAdapterMotionAX.addDataPointGeneric(mMotionGraphPlotIndex, doublesArray[i], 0.032);
+                mGraphAdapterMotionAX.addDataPointGeneric(mMotionGraphPlotIndex, doublesArray[ i ], 0.032);
                 mGraphAdapterMotionAY.addDataPointGeneric(mMotionGraphPlotIndex, doublesArray[i+1], 0.032);
                 mGraphAdapterMotionAZ.addDataPointGeneric(mMotionGraphPlotIndex, doublesArray[i+2], 0.032);
                 mMotionGraphPlotIndex++;
@@ -683,6 +688,8 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                 timestampsMPU[i] = (double)timestampIdxMPU*(INCREMENT_31_25);
                 timestampIdxMPU++;
             }
+//            Log.e(TAG,"LENGTH: tsMPU = "+String.valueOf(timestampsMPU.length));
+//            Log.e(TAG,"LENGTH: doublesArray = "+String.valueOf(doublesArray.length));
             writeToDiskMPU(timestampsMPU, doublesArray);
         }
 
@@ -778,9 +785,9 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
 
     private void writeToDiskMPU(final double[] timestampsMPU, final double[] dataArray) {
         if(dataArray.length>6) {
-            for (int i = 0; i < dataArray.length; i+=6) {
+            for (int i = 0; i < timestampsMPU.length; i++) {
                 try {
-                    exportFileMPU(timestampsMPU[i], dataArray[i],dataArray[i+1],dataArray[i+2],dataArray[i+3],dataArray[i+4],dataArray[i+5]);
+                    exportFileMPU(timestampsMPU[i], dataArray[6*i],dataArray[6*i+1],dataArray[6*i+2],dataArray[6*i+3],dataArray[6*i+4],dataArray[6*i+5]);
                 } catch (IOException e) {
                     Log.e("IOException", e.toString());
                 }
@@ -992,32 +999,25 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     private void updateBatteryStatus(final int integerValue) {
         final String status;
         double convertedBatteryVoltage = ((double) integerValue/(4096.0))*7.20;
-        double finalPercent = (convertedBatteryVoltage/4.2)*100;
+        //Because TPS63001 dies below 1.8V, we need to set up a linear fit between 1.8-4.2V
+        //Anything over 4.2V = 100%
+//        double finalPercent = (convertedBatteryVoltage/4.2)*100;
+        final double finalPercent;
+        if (((125.0/3.0)*convertedBatteryVoltage - 75.0) > 100.0) {
+            finalPercent = 100.0;
+        } else if (((125.0/3.0)*convertedBatteryVoltage - 75.0) < 0) {
+            finalPercent = 0;
+        } else {
+            finalPercent = (125.0/3.0)*convertedBatteryVoltage - 75.0;
+        }
         Log.e(TAG,"Battery Integer Value: "+String.valueOf(integerValue));
-        Log.e(TAG,"ConvertedBatteryVoltage: "+String.valueOf(convertedBatteryVoltage));
-        status = String.format(Locale.US,"%.2f",convertedBatteryVoltage)+"V : "+String.format(Locale.US,"%.2f",finalPercent)+"%";
+        Log.e(TAG,"ConvertedBatteryVoltage: "+String.format(Locale.US,"%.5f",convertedBatteryVoltage)+"V : "+String.format(Locale.US,"%.3f",finalPercent)+"%");
+        status = String.format(Locale.US,"%.2f",convertedBatteryVoltage)+"V : "+String.format(Locale.US,"%.1f",finalPercent)+"%";
+        batteryLevel = (int) Math.round(finalPercent);
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                if (integerValue <= batteryWarning) {
-                    mBatteryLevel.setTextColor(Color.RED);
-                    mBatteryLevel.setTypeface(null, Typeface.BOLD);
-                    Toast.makeText(getApplicationContext(), "Charge Battery, Battery Low " + status, Toast.LENGTH_SHORT).show();
-                } else {
-                    mBatteryLevel.setTextColor(Color.GREEN);
-                    mBatteryLevel.setTypeface(null, Typeface.BOLD);
-                }
-                mBatteryLevel.setText(status);
-            }
-        });
-    }
-    private void updateBatteryStatus(final int integerValue, final String status) {
-        double convertedBatteryVoltage = ((double) integerValue/(4096.0))*7.20;
-        Log.e(TAG,"ConvertedBatteryVoltage: "+String.valueOf(convertedBatteryVoltage));
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                if (integerValue <= batteryWarning) {
+                if (finalPercent <= batteryWarning) {
                     mBatteryLevel.setTextColor(Color.RED);
                     mBatteryLevel.setTypeface(null, Typeface.BOLD);
                     Toast.makeText(getApplicationContext(), "Charge Battery, Battery Low " + status, Toast.LENGTH_SHORT).show();
@@ -1058,8 +1058,5 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
 
     public native double jniResultantGyro(double[] a);
     public native double jniResultantAcc(double[] a);
-//    public native int jmainInitialization(boolean b);
-//
-//    public native double[] jClassifySSVEP(double[] a, double[] b, double c);
 
 }
