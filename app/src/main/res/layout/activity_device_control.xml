@@ -15,26 +15,33 @@
         <Button
             android:id="@+id/button_export"
             style="?android:attr/buttonStyleSmall"
-            android:layout_width="114dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="0.1"
             android:text="Export"
             android:textColor="#000000" />
 
-        <Switch
-            android:id="@+id/filterSwitch"
+        <Button
+            android:id="@+id/buttonReset"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="0.1"
-            android:checked="false"
-            android:text="Filter:" />
+            android:text="Reset"
+            android:textAppearance="@style/TextAppearance.AppCompat" />
 
         <ToggleButton
-            android:id="@+id/toggleButtonCh1"
+            android:id="@+id/toggleButtonGraphSet1"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="0.1"
             android:checked="true"
+            android:text="ToggleButton" />
+
+        <ToggleButton
+            android:id="@+id/toggleButtonGraphSet2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.1"
             android:text="ToggleButton" />
 
         <TextView
@@ -59,112 +66,39 @@
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
         android:gravity="center"
-        android:orientation="horizontal"
-        >
+        android:orientation="horizontal">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_weight="0.4"
-            android:orientation="horizontal">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:orientation="vertical">
+            android:orientation="vertical">
 
                 <com.androidplot.xy.XYPlot
-                    android:id="@+id/eegPlot"
-                    style="@style/APDefacto.Dark"
-                    androidPlot.backgroundPaint.color="#FFFFFF"
-                    androidPlot.borderPaint.color="#FFFFFF"
-                    androidPlot.domainLabel="Domain"
-                    androidPlot.domainLabelWidget.labelPaint.textSize="@dimen/domain_label_font_size"
-                    androidPlot.graphWidget.backgroundPaint.color="#FFFFFF"
-                    androidPlot.graphWidget.domainOriginLabelPaint.textSize="@dimen/domain_tick_label_font_size"
-                    androidPlot.graphWidget.gridBackgroundPaint.color="#fafafa"
-                    androidPlot.graphWidget.marginBottom="14dp"
-                    androidPlot.graphWidget.marginLeft="10dp"
-                    androidPlot.graphWidget.marginRight="0dp"
-                    androidPlot.graphWidget.marginTop="12dp"
-                    androidPlot.graphWidget.rangeOriginLabelPaint.textSize="@dimen/range_tick_label_font_size"
-                    androidPlot.rangeLabel="Range"
-                    androidPlot.rangeLabelWidget.labelPaint.textSize="@dimen/range_label_font_size"
-                    androidPlot.title="ECG Data Ch1"
-                    androidPlot.titleWidget.labelPaint.textSize="@dimen/title_font_size"
-                    androidplot.renderMode="use_background_thread"
+                    android:id="@+id/ecgTimeDomainXYPlot"
+                    style="@style/APFullScreenGraph.Light.Minimalist"
                     android:layout_width="fill_parent"
                     android:layout_height="fill_parent"
-                    android:layout_marginLeft="0dp"
-                    android:layout_marginRight="0dp"
-                    android:layout_marginTop="0dp"
                     android:layout_weight="0.4"
-                    ap:domainLabel="domain"
-                    ap:label="EMG Data"
-                    ap:rangeLabel="range" />
+                    ap:renderMode="use_background_thread" />
+
 
                 <com.androidplot.xy.XYPlot
-                    android:id="@+id/ecgPlot"
-                    style="@style/APDefacto.Dark"
-                    androidPlot.backgroundPaint.color="#FFFFFF"
-                    androidPlot.borderPaint.color="#FFFFFF"
-                    androidPlot.domainLabel="Domain"
-                    androidPlot.domainLabelWidget.labelPaint.textSize="@dimen/domain_label_font_size"
-                    androidPlot.graphWidget.backgroundPaint.color="#FFFFFF"
-                    androidPlot.graphWidget.domainOriginLabelPaint.textSize="@dimen/domain_tick_label_font_size"
-                    androidPlot.graphWidget.gridBackgroundPaint.color="#fafafa"
-                    androidPlot.graphWidget.marginBottom="14dp"
-                    androidPlot.graphWidget.marginLeft="10dp"
-                    androidPlot.graphWidget.marginRight="0dp"
-                    androidPlot.graphWidget.marginTop="12dp"
-                    androidPlot.graphWidget.rangeOriginLabelPaint.textSize="@dimen/range_tick_label_font_size"
-                    androidPlot.rangeLabel="Range"
-                    androidPlot.rangeLabelWidget.labelPaint.textSize="@dimen/range_label_font_size"
-                    androidPlot.title="ECG Data Ch2"
-                    androidPlot.titleWidget.labelPaint.textSize="@dimen/title_font_size"
-                    androidplot.renderMode="use_background_thread"
+                    android:id="@+id/ecgTimeDomainXYPlot2"
+                    style="@style/APFullScreenGraph.Light.Minimalist"
                     android:layout_width="fill_parent"
                     android:layout_height="fill_parent"
-                    android:layout_marginLeft="0dp"
-                    android:layout_marginRight="0dp"
-                    android:layout_marginTop="0dp"
                     android:layout_weight="0.4"
-                    ap:domainLabel="domain"
-                    ap:label="ECG Data"
-                    ap:rangeLabel="range" />
-            </LinearLayout>
+                    ap:renderMode="use_background_thread" />
         </LinearLayout>
 
         <com.androidplot.xy.XYPlot
-            android:id="@+id/MotionPlot"
-            style="@style/APDefacto.Dark"
-            androidPlot.backgroundPaint.color="#FFFFFF"
-            androidPlot.borderPaint.color="#FFFFFF"
-            androidPlot.domainLabel="Domain"
-            androidPlot.domainLabelWidget.labelPaint.textSize="@dimen/domain_label_font_size"
-            androidPlot.graphWidget.backgroundPaint.color="#FFFFFF"
-            androidPlot.graphWidget.domainOriginLabelPaint.textSize="@dimen/domain_tick_label_font_size"
-            androidPlot.graphWidget.gridBackgroundPaint.color="#fafafa"
-            androidPlot.graphWidget.marginBottom="14dp"
-            androidPlot.graphWidget.marginLeft="10dp"
-            androidPlot.graphWidget.marginRight="0dp"
-            androidPlot.graphWidget.marginTop="12dp"
-            androidPlot.graphWidget.rangeOriginLabelPaint.textSize="@dimen/range_tick_label_font_size"
-            androidPlot.rangeLabel="Range"
-            androidPlot.rangeLabelWidget.labelPaint.textSize="@dimen/range_label_font_size"
-            androidPlot.title="Motion Sensor Plot"
-            androidPlot.titleWidget.labelPaint.textSize="@dimen/title_font_size"
-            androidplot.renderMode="use_background_thread"
+            android:id="@+id/motionDataPlot"
+            style="@style/APFullScreenGraph.Light.Minimalist"
             android:layout_width="fill_parent"
             android:layout_height="fill_parent"
-            android:layout_marginLeft="0dp"
-            android:layout_marginRight="0dp"
-            android:layout_marginTop="0dp"
             android:layout_weight="1"
-            ap:domainLabel="domain"
-            ap:label="Motion Sensor data"
-            ap:rangeLabel="range" />
-
+            ap:renderMode="use_background_thread" />
 
     </LinearLayout>
 

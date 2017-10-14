@@ -51,3 +51,9 @@ app/build/outputs/logs/manifest-merger-debug-report.txt
 build/generated/mockable-android-23.jar
 build/intermediates/dex-cache/cache.xml
 .idea/
+app/.externalNativeBuild/
+.gradle/4.1/fileChanges/last-build.bin
+.gradle/4.1/
+.gradle/buildOutputCleanup/
+build/android-profile/
+build/

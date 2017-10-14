@@ -1,1 +1,1 @@
-# Android-HighSamplingRate-ECG
+# Android-SSVEP-Interface

@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="com.mahmoodms.bluetooth.exgsinglechannel">
+    package="com.yeolabgt.mahmoodms.ecg2chdemo">
 
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.INTERNET"/>
@@ -13,11 +13,22 @@
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:hardwareAccelerated="false"
         android:theme="@style/AppTheme">
+
+        <provider
+            android:name="android.support.v4.content.FileProvider"
+            android:authorities="${applicationId}.provider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/provider_paths"/>
+        </provider>
+
         <activity
-            android:name="com.mahmoodms.bluetooth.exgsinglechannel.MainActivity"
+            android:name="com.yeolabgt.mahmoodms.ecg2chdemo.MainActivity"
             android:label="@string/main_activity_title">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
@@ -25,14 +36,13 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
-        <activity android:name="com.mahmoodms.bluetooth.exgsinglechannel.DeviceControlActivity"
-                  android:hardwareAccelerated="false"
-                  android:label="ECG Sensor Data"
-                  android:parentActivityName="com.mahmoodms.bluetooth.exgsinglechannel.MainActivity">
+        <activity android:name="com.yeolabgt.mahmoodms.ecg2chdemo.DeviceControlActivity"
+            android:hardwareAccelerated="false"
+            android:label="ECG Sensor Data"
+            android:parentActivityName="com.yeolabgt.mahmoodms.ecg2chdemo.MainActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value="com.mahmoodms.bluetooth.exgsinglechannel.MainActivity" />
+                android:value="com.yeolabgt.mahmoodms.ecg2chdemo.MainActivity" />
         </activity>
     </application>
-
 </manifest>
