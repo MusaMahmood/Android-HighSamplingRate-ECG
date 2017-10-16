@@ -43,14 +43,6 @@ class DataChannel {
         this.packetCounter++;
     }
 
-//    void addToGraphBuffer(GraphAdapter graphAdapter) {
-//        for (int i = 0; i < this.dataBuffer.length / 3; i+=graphAdapter.sampleRate/250) {
-//            graphAdapter.addDataPoint(bytesToDouble(this.dataBuffer[3 * i], this.dataBuffer[3 * i + 1], this.dataBuffer[3 * i + 2]), this.totalDataPointsReceived - this.dataBuffer.length / 3 + i);
-//        }
-//        this.dataBuffer = null;
-//        this.packetCounter = 0;
-//    }
-
     static double bytesToDoubleMPU(byte a1, byte a2) {
         int unsigned;
         if (MSBFirst) {
@@ -69,6 +61,22 @@ class DataChannel {
             unsigned = unsignedBytesToInt(a1, a2);
         }
         return ((double) unsignedToSigned16bit(unsigned) / 32767.0) * 2.25;
+    }
+
+    static int bytesToInt(byte a1, byte a2) {
+        if (MSBFirst) {
+            return unsignedToSigned16bit(unsignedBytesToInt(a2, a1));
+        } else {
+            return unsignedToSigned16bit(unsignedBytesToInt(a1, a2));
+        }
+    }
+
+    static int bytesToInt(byte a1, byte a2, byte a3) {
+        if (MSBFirst) {
+            return unsignedToSigned24bit(unsignedBytesToInt(a3, a2, a1));
+        } else {
+            return unsignedToSigned24bit(unsignedBytesToInt(a1, a2, a3));
+        }
     }
 
 
@@ -100,13 +108,42 @@ class DataChannel {
         return (unsignedByteToInt(b0) + (unsignedByteToInt(b1) << 8) + (unsignedByteToInt(b2) << 16));
     }
 
+    /*
+        Non-size-dependent functions
+     */
+
     private static int unsignedByteToInt(byte b) {
         return b & 0xFF;
     }
 
-//    private static int unsignedToSigned(int unsigned, int size) {
-//        if ((unsigned & (1 << size - 1)) != 0) unsigned = -1 * ((1 << size - 1) - (unsigned & ((1 << size - 1) - 1)));
-//        Log.e("sizeof"+String.valueOf(size),String.valueOf((1 << size - 1)));
-//        return unsigned;
+    static int unsignedToSigned(int unsigned, int size) {
+        if ((unsigned & (1 << size - 1)) != 0) unsigned = -1 * ((1 << size - 1) - (unsigned & ((1 << size - 1) - 1)));
+        return unsigned;
+    }
+
+    static int unsignedBytesToInt(byte[] b) {
+        if(b.length==2) {
+            return unsignedBytesToInt(b[1],b[0]);
+        } else return unsignedBytesToInt(b[2],b[1],b[0]);
+    }
+
+//    static String bytesToHexString(byte[] a) {
+//        StringBuilder s = new StringBuilder("");
+//        for (byte b: a) {
+//            s.append(String.format("%02X", b));
+//        }
+//        return s.toString();
 //    }
+
+    private final static char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
+
+    static String bytesToHexString(byte[] bytes) {
+        char[] hexChars = new char[bytes.length * 2];
+        for ( int i = 0; i < bytes.length; i++ ) {
+            int v = bytes[i] & 0xFF;
+            hexChars[i * 2] = HEX_ARRAY[v >>> 4];
+            hexChars[i * 2 + 1] = HEX_ARRAY[v & 0x0F];
+        }
+        return new String(hexChars);
+    }
 }

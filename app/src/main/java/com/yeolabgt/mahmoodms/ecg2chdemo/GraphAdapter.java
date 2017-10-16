@@ -1,5 +1,7 @@
 package com.yeolabgt.mahmoodms.ecg2chdemo;
 
+import android.util.Log;
+
 import com.androidplot.xy.LineAndPointFormatter;
 import com.androidplot.xy.SimpleXYSeries;
 
@@ -73,6 +75,7 @@ class GraphAdapter {
 
     void setxAxisIncrement(double xAxisIncrement) {
         this.xAxisIncrement = xAxisIncrement;
+        Log.e("xAxisIncrement",String.valueOf(xAxisIncrement));
     }
 
     //Graph Stuff:

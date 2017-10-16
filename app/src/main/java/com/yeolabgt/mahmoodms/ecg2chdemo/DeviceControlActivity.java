@@ -70,6 +70,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     DataChannel mCh1;
     DataChannel mCh2;
     DataChannel mMPU;
+    private int mPacketBuffer;
     private int mTimestampIdxMPU = 0;
     boolean mMSBFirst = false;
     //LocalVars
@@ -83,7 +84,6 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     private String[] deviceMacAddresses = null;
     private BluetoothGatt[] mBluetoothGattArray = null;
     private boolean mEEGConnected_2ch = false;
-    // Classification
     //Layout - TextViews and Buttons
     private TextView mBatteryLevel;
     private TextView mDataRate;
@@ -218,10 +218,10 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     public void saveDataFile() throws IOException {
         File root = Environment.getExternalStorageDirectory();
 //        String fileTimeStamp = "EEG_SSVEPData_" + getTimeStamp() + "_" + String.valueOf((int) mSSVEPClass);
-        String fileTimeStamp = "EEG_SSVEPData_" + getTimeStamp() + "_" + String.valueOf(mSampleRate) + "Hz";
+        String fileTimeStamp = "ECG_" + String.valueOf(mSampleRate) + "Hz" + getTimeStamp() ;
         Log.e(TAG, "fileTimeStamp: " + fileTimeStamp);
         if (root.canWrite()) {
-            File dir = new File(root.getAbsolutePath() + "/EEGData");
+            File dir = new File(root.getAbsolutePath() + "/ECGData");
             boolean resultMkdir = dir.mkdirs();
             if (!resultMkdir) {
                 Log.e(TAG, "MKDIRS FAILED");
@@ -238,12 +238,32 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         }
     }
 
-    public void exportFileWithClass(double eegData1, double eegData2) throws IOException {
+    public void exportDataDouble(double eegData1, double eegData2) throws IOException {
         if (fileSaveInitialized) {
             String[] writeCSVValue = new String[2];
             writeCSVValue[0] = eegData1 + "";
             writeCSVValue[1] = eegData2 + "";
             csvWriter.writeNext(writeCSVValue, false);
+        }
+    }
+
+    public void exportDataDebug(byte[] a, byte[] b) throws IOException {
+        if(fileSaveInitialized) {
+            String[] w = new String[4];
+            w[0] = String.valueOf(DataChannel.unsignedToSigned(DataChannel.unsignedBytesToInt(a),a.length*8)) + "";
+            w[1] = DataChannel.bytesToHexString(a) + "";
+            w[2] = String.valueOf(DataChannel.unsignedToSigned(DataChannel.unsignedBytesToInt(b),b.length*8)) + "";
+            w[3] = DataChannel.bytesToHexString(b) + "";
+            csvWriter.writeNext(w, false);
+        }
+    }
+
+    public void exportDataInteger(int e1, int e2) throws IOException {
+        if(fileSaveInitialized) {
+            String[] w = new String[2];
+            w[0] = e1 + "";
+            w[1] = e2 + "";
+            csvWriter.writeNext(w, false);
         }
     }
 
@@ -280,30 +300,38 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         for (int i = 0; i < mBluetoothDeviceArray.length; i++) {
             mBluetoothGattArray[i] = mBluetoothLe.connect(mBluetoothDeviceArray[i], false);
             Log.e(TAG, "Connecting to Device: " + String.valueOf(mBluetoothDeviceArray[i].getName() + " " + mBluetoothDeviceArray[i].getAddress()));
-            if ("EMG 250Hz".equals(mBluetoothDeviceArray[i].getName())) {
-                mMSBFirst = false;
-            } else if ("EMG 3CH 250Hz".equals(mBluetoothDeviceArray[i].getName())) {
-                mMSBFirst = true;
-            } else if (mBluetoothDeviceArray[i].getName().toLowerCase().contains("nRF52".toLowerCase())) {
-                mMSBFirst = true;
-            }
-            if (mBluetoothDeviceArray[i].getName().toLowerCase().contains("8k".toLowerCase())) {
-                mSampleRate = 8000;
-                byteResolution = 2; //FOR ECG ONLY
-            } else if (mBluetoothDeviceArray[i].getName().toLowerCase().contains("4k".toLowerCase())) {
-                mSampleRate = 4000;
-                byteResolution = 3;
-            } else if (mBluetoothDeviceArray[i].getName().toLowerCase().contains("2k".toLowerCase())) {
-                mSampleRate = 2000;
-                byteResolution = 3;
-            } else if (mBluetoothDeviceArray[i].getName().toLowerCase().contains("1k".toLowerCase())) {
-                mSampleRate = 1000;
-                byteResolution = 3;
-            } else if (mBluetoothDeviceArray[i].getName().toLowerCase().contains("500".toLowerCase())) {
-                mSampleRate = 500;
-                byteResolution = 3;
-            } else {
-                mSampleRate = 250;
+            if(mBluetoothDeviceArray[i].getName()!=null) {
+                if ("EMG 250Hz".equals(mBluetoothDeviceArray[i].getName())) {
+                    mMSBFirst = false;
+                } else if ("EMG 3CH 250Hz".equals(mBluetoothDeviceArray[i].getName())) {
+                    mMSBFirst = true;
+                } else if (mBluetoothDeviceArray[i].getName().toLowerCase().contains("nRF52".toLowerCase())) {
+                    mMSBFirst = true;
+                }
+                if (mBluetoothDeviceArray[i].getName().toLowerCase().contains("8k".toLowerCase())) {
+                    mSampleRate = 8000;
+                    byteResolution = 2; //FOR ECG ONLY
+                    mPacketBuffer = 32;
+                } else if (mBluetoothDeviceArray[i].getName().toLowerCase().contains("4k".toLowerCase())) {
+                    mSampleRate = 4000;
+                    byteResolution = 3;
+                    mPacketBuffer = 16;
+                } else if (mBluetoothDeviceArray[i].getName().toLowerCase().contains("2k".toLowerCase())) {
+                    mSampleRate = 2000;
+                    byteResolution = 3;
+                    mPacketBuffer = 8;
+                } else if (mBluetoothDeviceArray[i].getName().toLowerCase().contains("1k".toLowerCase())) {
+                    mSampleRate = 1000;
+                    byteResolution = 3;
+                    mPacketBuffer = 4;
+                } else if (mBluetoothDeviceArray[i].getName().toLowerCase().contains("500".toLowerCase())) {
+                    mSampleRate = 500;
+                    mPacketBuffer = 2;
+                    byteResolution = 3;
+                } else {
+                    mSampleRate = 250;
+                    mPacketBuffer = 2;
+                }
             }
             Log.e(TAG, "mSampleRate: " + mSampleRate + "Hz");
             if (!mGraphInitializedBoolean) setupGraph();
@@ -587,7 +615,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
             getDataRateBytes(mNewEEGdataBytes.length);
             if (mEEGConnected_2ch) {
                 mCh1.handleNewData(mNewEEGdataBytes);
-                if (mCh1.packetCounter == 8) {
+                if (mCh1.packetCounter == mPacketBuffer) {
                     addToGraphBuffer(mCh1, mGraphAdapterCh1);
                 }
             }
@@ -602,7 +630,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
             getDataRateBytes(byteLength);
             if (mEEGConnected_2ch) {
                 mCh2.handleNewData(mNewEEGdataBytes);
-                if (mCh2.packetCounter == 8) {
+                if (mCh2.packetCounter == mPacketBuffer) {
                     addToGraphBuffer(mCh2, mGraphAdapterCh2);
                 }
             }
@@ -612,7 +640,9 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
             mCh1.chEnabled = false;
             mCh2.chEnabled = false;
             if (mCh1.characteristicDataPacketBytes != null && mCh2.characteristicDataPacketBytes != null) {
-                writeToDisk24(mCh1.characteristicDataPacketBytes, mCh2.characteristicDataPacketBytes);
+//                writeToDisk24(mCh1.characteristicDataPacketBytes, mCh2.characteristicDataPacketBytes);
+                writeToDiskDebug(mCh1.characteristicDataPacketBytes, mCh2.characteristicDataPacketBytes);
+//                writeToDisk24Int(mCh1.characteristicDataPacketBytes, mCh2.characteristicDataPacketBytes);
             }
         }
     }
@@ -631,25 +661,82 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         dataChannel.packetCounter = 0;
     }
 
+    int mTotalDataPointsPlotted = 0;
     void addToGraphBuffer(DataChannel dataChannel, GraphAdapter graphAdapter) {
         if (byteResolution == 3) {
             for (int i = 0; i < dataChannel.dataBuffer.length / 3; i += graphAdapter.sampleRate / 250) {
-                graphAdapter.addDataPoint(DataChannel.bytesToDouble(dataChannel.dataBuffer[3 * i], dataChannel.dataBuffer[3 * i + 1], dataChannel.dataBuffer[3 * i + 2]), dataChannel.totalDataPointsReceived - dataChannel.dataBuffer.length / 3 + i);
+                graphAdapter.addDataPointGeneric(mTotalDataPointsPlotted*0.004,
+                        DataChannel.bytesToDouble(dataChannel.dataBuffer[3 * i], dataChannel.dataBuffer[3 * i + 1], dataChannel.dataBuffer[3 * i + 2]));
+                mTotalDataPointsPlotted++;
             }
         } else if (byteResolution == 2) {
             for (int i = 0; i < dataChannel.dataBuffer.length / 2; i += graphAdapter.sampleRate / 250) {
-                graphAdapter.addDataPoint(DataChannel.bytesToDouble(dataChannel.dataBuffer[2 * i], dataChannel.dataBuffer[2 * i + 1]), dataChannel.totalDataPointsReceived - dataChannel.dataBuffer.length / 2 + i);
+//                graphAdapter.addDataPoint(DataChannel.bytesToDouble(dataChannel.dataBuffer[2 * i], dataChannel.dataBuffer[2 * i + 1]), dataChannel.totalDataPointsReceived - dataChannel.dataBuffer.length / 2 + i);
+                graphAdapter.addDataPointGeneric(mTotalDataPointsPlotted*0.004,
+                        DataChannel.bytesToDouble(dataChannel.dataBuffer[2 * i], dataChannel.dataBuffer[2 * i + 1]));
+                mTotalDataPointsPlotted++;
             }
         }
+
         dataChannel.dataBuffer = null;
         dataChannel.packetCounter = 0;
+    }
+
+    private void writeToDiskDebug(byte[] ch1Bytes, byte[] ch2Bytes) {
+        if(byteResolution==2) {
+            try {
+                for (int i = 0; i < ch1Bytes.length/2; i++) {
+                    byte[] a = {ch1Bytes[2*i], ch1Bytes[2*i+1]};
+                    byte[] b = {ch2Bytes[2*i], ch2Bytes[2*i+1]};
+                    exportDataDebug(a,b);
+                }
+            } catch (IOException e) {
+                Log.e("IOException", e.toString());
+            }
+        } else if (byteResolution==3) {
+            try {
+                for (int i = 0; i < ch1Bytes.length/3; i++) {
+                    byte[] a = {ch1Bytes[3*i], ch1Bytes[3*i+1], ch1Bytes[3*i+2]};
+                    byte[] b = {ch2Bytes[3*i], ch2Bytes[3*i+1], ch2Bytes[3*i+2]};
+                    exportDataDebug(a,b);
+                }
+            } catch (IOException e) {
+                Log.e("IOException", e.toString());
+            }
+        }
+    }
+
+    private void writeToDisk24Int(byte[] ch1Bytes, byte[] ch2Bytes) {
+        if(byteResolution==2) {
+            try {
+                for (int i = 0; i < ch1Bytes.length/byteResolution; i++) {
+//                    exportDataInteger(DataChannel.unsignedToSigned(DataChannel.unsignedBytesToInt(ch1Bytes[2*i],ch1Bytes[2*i+1]),16),
+//                            DataChannel.unsignedToSigned(DataChannel.unsignedBytesToInt(ch2Bytes[2*i],ch2Bytes[2*i+1]),16));
+                    exportDataInteger(DataChannel.bytesToInt(ch1Bytes[2*i],ch1Bytes[2*i+1]),
+                            DataChannel.bytesToInt(ch2Bytes[2*i],ch2Bytes[2*i+1]));
+                }
+            } catch (IOException e) {
+                Log.e("IOException", e.toString());
+            }
+        } else if (byteResolution == 3) {
+            try {
+                for (int i = 0; i < ch1Bytes.length/byteResolution; i++) {
+//                    exportDataInteger(DataChannel.unsignedToSigned(DataChannel.unsignedBytesToInt(ch1Bytes[2*i],ch1Bytes[2*i+1]),16),
+//                            DataChannel.unsignedToSigned(DataChannel.unsignedBytesToInt(ch2Bytes[2*i],ch2Bytes[2*i+1]),16));
+                    exportDataInteger(DataChannel.bytesToInt(ch1Bytes[3 * i], ch1Bytes[3 * i + 1], ch1Bytes[3 * i + 2]),
+                            DataChannel.bytesToInt(ch2Bytes[3 * i], ch2Bytes[3 * i + 1], ch2Bytes[3 * i + 2]));
+                }
+            } catch (IOException e) {
+                Log.e("IOException", e.toString());
+            }
+        }
     }
 
     private void writeToDisk24(byte[] ch1Bytes, byte[] ch2Bytes) {
         if(byteResolution==3) {
             for (int i = 0; i < ch1Bytes.length / 3; i++) {
                 try {
-                    exportFileWithClass(DataChannel.bytesToDouble(ch1Bytes[3 * i], ch1Bytes[3 * i + 1], ch1Bytes[3 * i + 2]),
+                    exportDataDouble(DataChannel.bytesToDouble(ch1Bytes[3 * i], ch1Bytes[3 * i + 1], ch1Bytes[3 * i + 2]),
                             DataChannel.bytesToDouble(ch2Bytes[3 * i], ch2Bytes[3 * i + 1], ch2Bytes[3 * i + 2]));
                 } catch (IOException e) {
                     Log.e("IOException", e.toString());
@@ -658,8 +745,8 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         } else if (byteResolution==2) {
             for (int i = 0; i < ch1Bytes.length / 2; i++) {
                 try {
-                    exportFileWithClass(DataChannel.bytesToDouble(ch1Bytes[2 * i], ch1Bytes[2 * i + 1]),
-                            DataChannel.bytesToDouble(ch1Bytes[2 * i], ch1Bytes[2 * i + 1]));
+                    exportDataDouble(DataChannel.bytesToDouble(ch1Bytes[2 * i], ch1Bytes[2 * i + 1]),
+                            DataChannel.bytesToDouble(ch2Bytes[2 * i], ch2Bytes[2 * i + 1]));
                 } catch (IOException e) {
                     Log.e("IOException", e.toString());
                 }
