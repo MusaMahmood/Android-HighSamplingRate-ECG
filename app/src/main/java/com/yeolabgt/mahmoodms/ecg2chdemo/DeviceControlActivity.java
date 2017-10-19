@@ -18,7 +18,6 @@ import android.graphics.drawable.ColorDrawable;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
 import android.support.v4.app.NavUtils;
 import android.support.v4.content.FileProvider;
@@ -36,12 +35,10 @@ import android.widget.ToggleButton;
 import com.androidplot.Plot;
 import com.androidplot.util.Redrawer;
 import com.beele.BluetoothLe;
-import com.opencsv.CSVWriter;
 
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.Locale;
@@ -104,9 +101,8 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     //Play Sound:
     MediaPlayer mMediaBeep;
     //File Save Stuff:
-    private boolean fileSaveInitialized = false;
-    private CSVWriter csvWriter;
-    private File file;
+    private SaveFile mSaveFileECG;
+    private SaveFile mSaveFileMPU;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -118,7 +114,6 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         final Intent intent = getIntent();
         deviceMacAddresses = intent.getStringArrayExtra(MainActivity.INTENT_DEVICES_KEY);
         String[] deviceDisplayNames = intent.getStringArrayExtra(MainActivity.INTENT_DEVICES_NAMES);
-
         mDeviceName = deviceDisplayNames[0];
         mDeviceAddress = deviceMacAddresses[0];
         Log.d(TAG, "Device Names: " + Arrays.toString(deviceDisplayNames));
@@ -142,7 +137,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         ab.setSubtitle(mDeviceAddress);
         //Initialize Bluetooth
         if (!mBleInitializedBoolean) initializeBluetoothArray();
-        mExportButton.setOnClickListener(new View.OnClickListener() {
+        /*mExportButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 try {
@@ -152,11 +147,33 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                     e.printStackTrace();
                 }
                 Context context = getApplicationContext();
-                Uri uii = FileProvider.getUriForFile(context, context.getPackageName() + ".provider", file);
+                Uri uii = FileProvider.getUriForFile(context, context.getPackageName() + ".provider", mSaveFileECG.file);
                 Intent exportData = new Intent(Intent.ACTION_SEND);
                 exportData.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                 exportData.putExtra(Intent.EXTRA_SUBJECT, "Sensor Data Export Details");
                 exportData.putExtra(Intent.EXTRA_STREAM, uii);
+                exportData.setType("text/html");
+                startActivity(exportData);
+            }
+        });*/
+        mExportButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                try {
+                    terminateDataFileWriter();
+                } catch (IOException e) {
+                    Log.e(TAG, "IOException" + e.toString());
+                    e.printStackTrace();
+                }
+                Context context = getApplicationContext();
+                ArrayList<Uri> files = new ArrayList<>();
+                Uri uii = FileProvider.getUriForFile(context, context.getPackageName() + ".provider", mSaveFileECG.file);
+                Uri uii2 = FileProvider.getUriForFile(context, context.getPackageName() + ".provider", mSaveFileMPU.file);
+                files.add(uii);
+                files.add(uii2);
+                Intent exportData = new Intent(Intent.ACTION_SEND_MULTIPLE);
+                exportData.putExtra(Intent.EXTRA_SUBJECT, "ECG Sensor Data Export Details");
+                exportData.putParcelableArrayListExtra(Intent.EXTRA_STREAM,files);
                 exportData.setType("text/html");
                 startActivity(exportData);
             }
@@ -203,68 +220,8 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
      * @throws IOException some IO Error
      */
     public void terminateDataFileWriter() throws IOException {
-        if (fileSaveInitialized) {
-            csvWriter.flush();
-            csvWriter.close();
-            fileSaveInitialized = false;
-        }
-    }
-
-    /**
-     * Initializes CSVWriter For Saving Data.
-     *
-     * @throws IOException bc
-     */
-    public void saveDataFile() throws IOException {
-        File root = Environment.getExternalStorageDirectory();
-//        String fileTimeStamp = "EEG_SSVEPData_" + getTimeStamp() + "_" + String.valueOf((int) mSSVEPClass);
-        String fileTimeStamp = "ECG_" + String.valueOf(mSampleRate) + "Hz" + getTimeStamp() ;
-        Log.e(TAG, "fileTimeStamp: " + fileTimeStamp);
-        if (root.canWrite()) {
-            File dir = new File(root.getAbsolutePath() + "/ECGData");
-            boolean resultMkdir = dir.mkdirs();
-            if (!resultMkdir) {
-                Log.e(TAG, "MKDIRS FAILED");
-            }
-            file = new File(dir, fileTimeStamp + ".csv");
-            if (file.exists() && !file.isDirectory()) {
-                Log.d(TAG, "File " + file.toString() + " already exists - appending data");
-                FileWriter fileWriter = new FileWriter(file, true);
-                csvWriter = new CSVWriter(fileWriter);
-            } else {
-                csvWriter = new CSVWriter(new FileWriter(file));
-            }
-            fileSaveInitialized = true;
-        }
-    }
-
-    public void exportDataDouble(double eegData1, double eegData2) throws IOException {
-        if (fileSaveInitialized) {
-            String[] writeCSVValue = new String[2];
-            writeCSVValue[0] = eegData1 + "";
-            writeCSVValue[1] = eegData2 + "";
-            csvWriter.writeNext(writeCSVValue, false);
-        }
-    }
-
-    public void exportDataDebug(byte[] a, byte[] b) throws IOException {
-        if(fileSaveInitialized) {
-            String[] w = new String[4];
-            w[0] = String.valueOf(DataChannel.unsignedToSigned(DataChannel.unsignedBytesToInt(a),a.length*8)) + "";
-            w[1] = DataChannel.bytesToHexString(a) + "";
-            w[2] = String.valueOf(DataChannel.unsignedToSigned(DataChannel.unsignedBytesToInt(b),b.length*8)) + "";
-            w[3] = DataChannel.bytesToHexString(b) + "";
-            csvWriter.writeNext(w, false);
-        }
-    }
-
-    public void exportDataInteger(int e1, int e2) throws IOException {
-        if(fileSaveInitialized) {
-            String[] w = new String[2];
-            w[0] = e1 + "";
-            w[1] = e2 + "";
-            csvWriter.writeNext(w, false);
-        }
+        mSaveFileECG.terminateDataFileWriter();
+        mSaveFileMPU.terminateDataFileWriter();
     }
 
     @Override
@@ -310,7 +267,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                 }
                 if (mBluetoothDeviceArray[i].getName().toLowerCase().contains("8k".toLowerCase())) {
                     mSampleRate = 8000;
-                    byteResolution = 2; //FOR ECG ONLY
+                    byteResolution = 3; //FOR ECG ONLY
                     mPacketBuffer = 32;
                 } else if (mBluetoothDeviceArray[i].getName().toLowerCase().contains("4k".toLowerCase())) {
                     mSampleRate = 4000;
@@ -348,13 +305,13 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
 
             mGraphAdapterCh1.setSeriesHistoryDataPoints(250 * 5);
             mGraphAdapterCh2.setSeriesHistoryDataPoints(250 * 5);
-
-            if (!fileSaveInitialized) {
-                try {
-                    saveDataFile();
-                } catch (IOException ex) {
-                    Log.e("IOEXCEPTION:", ex.toString());
-                }
+            String fileNameTimeStamped = "ECG_" + String.valueOf(mSampleRate) + "Hz_" + getTimeStamp() ;
+            String fileNameTimeStamped2 = "MPUData_" + getTimeStamp();
+            try {
+                mSaveFileECG = new SaveFile("/ECGData",fileNameTimeStamped,byteResolution,(double)1/mSampleRate);
+                mSaveFileMPU = new SaveFile("/MPUData",fileNameTimeStamped2,2, 0.032);
+            } catch (IOException ex) {
+                Log.e("IO EXCEPTION:", ex.toString());
             }
         }
         mBleInitializedBoolean = true;
@@ -604,6 +561,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
             mMPU.handleNewData(dataMPU);
             if (mMPU.packetCounter == 1) {
                 addToGraphBufferMPU(mMPU);
+                mSaveFileMPU.exportDataWithTimestampMPU(mMPU.characteristicDataPacketBytes);
             }
         }
 
@@ -640,9 +598,11 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
             mCh1.chEnabled = false;
             mCh2.chEnabled = false;
             if (mCh1.characteristicDataPacketBytes != null && mCh2.characteristicDataPacketBytes != null) {
-//                writeToDisk24(mCh1.characteristicDataPacketBytes, mCh2.characteristicDataPacketBytes);
-                writeToDiskDebug(mCh1.characteristicDataPacketBytes, mCh2.characteristicDataPacketBytes);
-//                writeToDisk24Int(mCh1.characteristicDataPacketBytes, mCh2.characteristicDataPacketBytes);
+                try {
+                    mSaveFileECG.exportDataWithTimestamp(mCh1.characteristicDataPacketBytes, mCh2.characteristicDataPacketBytes);
+                } catch (IOException e) {
+                    Log.e(TAG,e.toString());
+                }
             }
         }
     }
@@ -650,108 +610,31 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     void addToGraphBufferMPU(DataChannel dataChannel) {
         for (int i = 0; i < dataChannel.dataBuffer.length/12; i++) {
             mGraphAdapterMotionAX.addDataPointGeneric(0.032*(double) mTimestampIdxMPU,
-                    DataChannel.bytesToDoubleMPU(dataChannel.dataBuffer[12* i ], dataChannel.dataBuffer[12*i+1]));
+                    DataChannel.bytesToDoubleMPUAccel(dataChannel.dataBuffer[12* i ], dataChannel.dataBuffer[12*i+1]));
             mGraphAdapterMotionAY.addDataPointGeneric(0.032*(double) mTimestampIdxMPU,
-                    DataChannel.bytesToDoubleMPU(dataChannel.dataBuffer[12*i+2], dataChannel.dataBuffer[12*i+3]));
+                    DataChannel.bytesToDoubleMPUAccel(dataChannel.dataBuffer[12*i+2], dataChannel.dataBuffer[12*i+3]));
             mGraphAdapterMotionAZ.addDataPointGeneric(0.032*(double) mTimestampIdxMPU,
-                    DataChannel.bytesToDoubleMPU(dataChannel.dataBuffer[12*i+4], dataChannel.dataBuffer[12*i+5]));
+                    DataChannel.bytesToDoubleMPUAccel(dataChannel.dataBuffer[12*i+4], dataChannel.dataBuffer[12*i+5]));
             mTimestampIdxMPU++;
         }
-        dataChannel.dataBuffer = null;
-        dataChannel.packetCounter = 0;
+        dataChannel.resetBuffer();
     }
 
-    int mTotalDataPointsPlotted = 0;
     void addToGraphBuffer(DataChannel dataChannel, GraphAdapter graphAdapter) {
         if (byteResolution == 3) {
             for (int i = 0; i < dataChannel.dataBuffer.length / 3; i += graphAdapter.sampleRate / 250) {
-                graphAdapter.addDataPointGeneric(mTotalDataPointsPlotted*0.004,
+                graphAdapter.addDataPointGeneric(dataChannel.mTotalDataPointsPlotted*0.004,
                         DataChannel.bytesToDouble(dataChannel.dataBuffer[3 * i], dataChannel.dataBuffer[3 * i + 1], dataChannel.dataBuffer[3 * i + 2]));
-                mTotalDataPointsPlotted++;
+                dataChannel.mTotalDataPointsPlotted++;
             }
         } else if (byteResolution == 2) {
             for (int i = 0; i < dataChannel.dataBuffer.length / 2; i += graphAdapter.sampleRate / 250) {
-//                graphAdapter.addDataPoint(DataChannel.bytesToDouble(dataChannel.dataBuffer[2 * i], dataChannel.dataBuffer[2 * i + 1]), dataChannel.totalDataPointsReceived - dataChannel.dataBuffer.length / 2 + i);
-                graphAdapter.addDataPointGeneric(mTotalDataPointsPlotted*0.004,
+                graphAdapter.addDataPointGeneric(dataChannel.mTotalDataPointsPlotted*0.004,
                         DataChannel.bytesToDouble(dataChannel.dataBuffer[2 * i], dataChannel.dataBuffer[2 * i + 1]));
-                mTotalDataPointsPlotted++;
+                dataChannel.mTotalDataPointsPlotted++;
             }
         }
-
-        dataChannel.dataBuffer = null;
-        dataChannel.packetCounter = 0;
-    }
-
-    private void writeToDiskDebug(byte[] ch1Bytes, byte[] ch2Bytes) {
-        if(byteResolution==2) {
-            try {
-                for (int i = 0; i < ch1Bytes.length/2; i++) {
-                    byte[] a = {ch1Bytes[2*i], ch1Bytes[2*i+1]};
-                    byte[] b = {ch2Bytes[2*i], ch2Bytes[2*i+1]};
-                    exportDataDebug(a,b);
-                }
-            } catch (IOException e) {
-                Log.e("IOException", e.toString());
-            }
-        } else if (byteResolution==3) {
-            try {
-                for (int i = 0; i < ch1Bytes.length/3; i++) {
-                    byte[] a = {ch1Bytes[3*i], ch1Bytes[3*i+1], ch1Bytes[3*i+2]};
-                    byte[] b = {ch2Bytes[3*i], ch2Bytes[3*i+1], ch2Bytes[3*i+2]};
-                    exportDataDebug(a,b);
-                }
-            } catch (IOException e) {
-                Log.e("IOException", e.toString());
-            }
-        }
-    }
-
-    private void writeToDisk24Int(byte[] ch1Bytes, byte[] ch2Bytes) {
-        if(byteResolution==2) {
-            try {
-                for (int i = 0; i < ch1Bytes.length/byteResolution; i++) {
-//                    exportDataInteger(DataChannel.unsignedToSigned(DataChannel.unsignedBytesToInt(ch1Bytes[2*i],ch1Bytes[2*i+1]),16),
-//                            DataChannel.unsignedToSigned(DataChannel.unsignedBytesToInt(ch2Bytes[2*i],ch2Bytes[2*i+1]),16));
-                    exportDataInteger(DataChannel.bytesToInt(ch1Bytes[2*i],ch1Bytes[2*i+1]),
-                            DataChannel.bytesToInt(ch2Bytes[2*i],ch2Bytes[2*i+1]));
-                }
-            } catch (IOException e) {
-                Log.e("IOException", e.toString());
-            }
-        } else if (byteResolution == 3) {
-            try {
-                for (int i = 0; i < ch1Bytes.length/byteResolution; i++) {
-//                    exportDataInteger(DataChannel.unsignedToSigned(DataChannel.unsignedBytesToInt(ch1Bytes[2*i],ch1Bytes[2*i+1]),16),
-//                            DataChannel.unsignedToSigned(DataChannel.unsignedBytesToInt(ch2Bytes[2*i],ch2Bytes[2*i+1]),16));
-                    exportDataInteger(DataChannel.bytesToInt(ch1Bytes[3 * i], ch1Bytes[3 * i + 1], ch1Bytes[3 * i + 2]),
-                            DataChannel.bytesToInt(ch2Bytes[3 * i], ch2Bytes[3 * i + 1], ch2Bytes[3 * i + 2]));
-                }
-            } catch (IOException e) {
-                Log.e("IOException", e.toString());
-            }
-        }
-    }
-
-    private void writeToDisk24(byte[] ch1Bytes, byte[] ch2Bytes) {
-        if(byteResolution==3) {
-            for (int i = 0; i < ch1Bytes.length / 3; i++) {
-                try {
-                    exportDataDouble(DataChannel.bytesToDouble(ch1Bytes[3 * i], ch1Bytes[3 * i + 1], ch1Bytes[3 * i + 2]),
-                            DataChannel.bytesToDouble(ch2Bytes[3 * i], ch2Bytes[3 * i + 1], ch2Bytes[3 * i + 2]));
-                } catch (IOException e) {
-                    Log.e("IOException", e.toString());
-                }
-            }
-        } else if (byteResolution==2) {
-            for (int i = 0; i < ch1Bytes.length / 2; i++) {
-                try {
-                    exportDataDouble(DataChannel.bytesToDouble(ch1Bytes[2 * i], ch1Bytes[2 * i + 1]),
-                            DataChannel.bytesToDouble(ch2Bytes[2 * i], ch2Bytes[2 * i + 1]));
-                } catch (IOException e) {
-                    Log.e("IOException", e.toString());
-                }
-            }
-        }
+        dataChannel.resetBuffer();
     }
 
     private void getDataRateBytes(int bytes) {
@@ -786,7 +669,6 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     @Override
     public void onReadRemoteRssi(BluetoothGatt gatt, int rssi, int status) {
         uiRssiUpdate(rssi);
-//        String lastRssi = String.valueOf(rssi) + "db";
     }
 
     @Override
@@ -855,8 +737,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     }
 
     public void readPeriodicallyRssiValue(final boolean repeat) {
-        mTimerEnabled = repeat;
-        // check if we should stop checking RSSI value
+        mTimerEnabled = repeat; // check if we should stop checking RSSI value
         if (!mConnected || mBluetoothGattArray == null || !mTimerEnabled) {
             mTimerEnabled = false;
             return;
@@ -868,10 +749,8 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                 if (mBluetoothGattArray == null || !mConnected) {
                     mTimerEnabled = false;
                     return;
-                }
-                // request RSSI value
-                mBluetoothGattArray[0].readRemoteRssi();
-                // add call it once more in the future
+                } // request RSSI value
+                mBluetoothGattArray[0].readRemoteRssi(); // add call it once more in the future
                 readPeriodicallyRssiValue(mTimerEnabled);
             }
         }, RSSI_UPDATE_TIME_INTERVAL);
@@ -915,7 +794,6 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         double convertedBatteryVoltage = ((double) integerValue/(4096.0))*7.20;
         //Because TPS63001 dies below 1.8V, we need to set up a linear fit between 1.8-4.2V
         //Anything over 4.2V = 100%
-//        double finalPercent = (convertedBatteryVoltage/4.2)*100;
         final double finalPercent;
         if (((125.0/3.0)*convertedBatteryVoltage - 75.0) > 100.0) {
             finalPercent = 100.0;
@@ -961,5 +839,4 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
             }
         });
     }
-
 }

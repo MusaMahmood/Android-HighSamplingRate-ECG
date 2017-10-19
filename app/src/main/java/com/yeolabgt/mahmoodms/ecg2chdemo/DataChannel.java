@@ -12,18 +12,23 @@ class DataChannel {
     private static boolean MSBFirst;
     byte[] characteristicDataPacketBytes;
     short packetCounter;
-    int totalDataPointsReceived;
+    int mTotalDataPointsPlotted;
     byte[] dataBuffer;
 
     DataChannel(boolean chEnabled, boolean MSBFirst) {
         this.packetCounter = 0;
-        this.totalDataPointsReceived = 0;
+        this.mTotalDataPointsPlotted = 0;
         this.chEnabled = chEnabled;
         setMSBFirst(MSBFirst);
     }
 
     private static void setMSBFirst(boolean MSBFirst) {
         DataChannel.MSBFirst = MSBFirst;
+    }
+
+    void resetBuffer() {
+        this.dataBuffer = null;
+        this.packetCounter = 0;
     }
 
     /**
@@ -39,18 +44,27 @@ class DataChannel {
         } else {
             this.dataBuffer = newDataPacket;
         }
-        this.totalDataPointsReceived += newDataPacket.length / 3;
         this.packetCounter++;
     }
 
-    static double bytesToDoubleMPU(byte a1, byte a2) {
+    static double bytesToDoubleMPUAccel(byte a1, byte a2) {
         int unsigned;
         if (MSBFirst) {
             unsigned = unsignedBytesToInt(a2, a1);
         } else {
             unsigned = unsignedBytesToInt(a1, a2);
         }
-        return ((double) unsignedToSigned16bit(unsigned) / 32767.0) * 16;
+        return ((double) unsignedToSigned16bit(unsigned) / 32767.0) * 16.0;
+    }
+
+    static double bytesToDoubleMPUGyro(byte a1, byte a2) {
+        int unsigned;
+        if (MSBFirst) {
+            unsigned = unsignedBytesToInt(a2, a1);
+        } else {
+            unsigned = unsignedBytesToInt(a1, a2);
+        }
+        return ((double) unsignedToSigned16bit(unsigned) / 32767.0) * 4000.0;
     }
 
     static double bytesToDouble(byte a1, byte a2) {
@@ -116,17 +130,10 @@ class DataChannel {
         return b & 0xFF;
     }
 
-    static int unsignedToSigned(int unsigned, int size) {
-        if ((unsigned & (1 << size - 1)) != 0) unsigned = -1 * ((1 << size - 1) - (unsigned & ((1 << size - 1) - 1)));
-        return unsigned;
-    }
-
-    static int unsignedBytesToInt(byte[] b) {
-        if(b.length==2) {
-            return unsignedBytesToInt(b[1],b[0]);
-        } else return unsignedBytesToInt(b[2],b[1],b[0]);
-    }
-
+//    static int unsignedToSigned(int unsigned, int size) {
+//        if ((unsigned & (1 << size - 1)) != 0) unsigned = -1 * ((1 << size - 1) - (unsigned & ((1 << size - 1) - 1)));
+//        return unsigned;
+//    }
 //    static String bytesToHexString(byte[] a) {
 //        StringBuilder s = new StringBuilder("");
 //        for (byte b: a) {
