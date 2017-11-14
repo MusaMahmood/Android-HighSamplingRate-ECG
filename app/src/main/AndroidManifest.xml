@@ -44,5 +44,11 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.yeolabgt.mahmoodms.ecg2chdemo.MainActivity" />
         </activity>
+        <activity android:name="com.yeolabgt.mahmoodms.ecg2chdemo.SettingsActivity"
+            android:label="Settings">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.yeolabgt.mahmoodms.ecg2chdemo.DeviceControlActivity" />
+        </activity>
     </application>
 </manifest>
