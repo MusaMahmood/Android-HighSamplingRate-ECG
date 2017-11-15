@@ -12,6 +12,7 @@ internal class DataChannel(var chEnabled: Boolean, MSBFirst: Boolean, //Classifi
     var characteristicDataPacketBytes: ByteArray? = null
     var packetCounter: Short = 0
     var totalDataPointsReceived: Int = 0
+        set
     var dataBuffer: ByteArray? = null
     var classificationBuffer: DoubleArray
     var classificationBufferFloats: FloatArray

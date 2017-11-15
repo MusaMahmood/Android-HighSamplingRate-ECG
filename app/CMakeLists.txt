@@ -20,16 +20,16 @@ add_library( # Sets the name of the library.
              src/main/cpp/native-lib.cpp )
 
 add_library( # Sets the name of the library.
-              ssvep-lib
+              ecg-lib
 
               # Sets the library as a shared library.
               SHARED
               # Provides a relative path to your source file(s).
 
                 # Main C++ Data Processing Files
-                src/main/cpp/extractPowerSpectrum.cpp
-                src/main/cpp/extractPowerSpectrum_emxutil.cpp
-                src/main/cpp/classifySSVEP.cpp
+                src/main/cpp/ecg_var_filter.cpp
+                src/main/cpp/ecg_var_filter_emxutil.cpp
+                src/main/cpp/ecg_var_filter_emxAPI.cpp
                 src/main/cpp/ssvep_filter_f32.cpp
 
                 # Executor
@@ -61,7 +61,7 @@ find_library( # Sets the name of the path variable.
 
 target_link_libraries( # Specifies the target library.
                        # ### NOTE YOU HAVE TO INDIVIDUALLY LINK EACH LIBRARY!
-                       ssvep-lib
+                       ecg-lib
 
                        # Links the target library to the log library
                        # included in the NDK.

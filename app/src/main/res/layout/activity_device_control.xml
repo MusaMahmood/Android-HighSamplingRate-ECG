@@ -6,14 +6,6 @@
               android:layout_height="match_parent"
               android:background="#FFFFFF">
 
-
-    <TextView
-        android:id="@+id/trainingInstructions"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="TextView"
-        android:textSize="18sp" />
-
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -28,33 +20,11 @@
             android:text="ToggleButton" />
 
         <TextView
-            android:id="@+id/textViewYfit"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.1"
-            android:text="TextView" />
-
-        <TextView
             android:id="@+id/dataRate"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="TextView" />
-
-        <Switch
-            android:id="@+id/tensorflowClassificationSwitch"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.1"
-            android:checked="false"
-            android:text="TF" />
-
-        <Button
-            android:id="@+id/resetActivityButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.1"
-            android:text="Reset Activity" />
 
         <TextView
             android:id="@+id/batteryText"
@@ -82,14 +52,6 @@
             android:layout_height="fill_parent"
             android:layout_weight="0.4"
             ap:renderMode="use_background_thread" />
-
-        <com.androidplot.xy.XYPlot
-            android:id="@+id/frequencyAnalysisXYPlot"
-            style="@style/APFullScreenGraph.Light"
-            android:layout_width="fill_parent"
-            android:layout_height="fill_parent"
-            ap:renderMode="use_background_thread"
-            android:layout_weight="0.4"/>
 
     </LinearLayout>
 
@@ -119,34 +81,6 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="ToggleButton" />
-
-        <Button
-            android:id="@+id/buttonS"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="S" />
-
-        <Button
-            android:id="@+id/buttonF"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="F" />
-
-        <Button
-            android:id="@+id/buttonL"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="L" />
-
-        <Button
-            android:id="@+id/buttonR"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="R" />
 
     </LinearLayout>
 

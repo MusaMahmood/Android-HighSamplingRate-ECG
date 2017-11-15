@@ -2,16 +2,16 @@
 // Academic License - for use in teaching, academic research, and meeting
 // course requirements at degree granting institutions only.  Not for
 // government, commercial, or other organizational use.
-// File: extractPowerSpectrum_emxutil.cpp
+// File: ecg_var_filter_emxutil.cpp
 //
 // MATLAB Coder version            : 3.3
-// C/C++ source code generated on  : 05-Oct-2017 14:15:24
+// C/C++ source code generated on  : 14-Nov-2017 19:21:24
 //
 
 // Include Files
 #include "rt_nonfinite.h"
-#include "extractPowerSpectrum.h"
-#include "extractPowerSpectrum_emxutil.h"
+#include "ecg_var_filter.h"
+#include "ecg_var_filter_emxutil.h"
 
 // Function Definitions
 
@@ -65,19 +65,36 @@ void emxEnsureCapacity(emxArray__common *emxArray, int oldNumel, unsigned int
 }
 
 //
-// Arguments    : emxArray_creal_T **pEmxArray
+// Arguments    : emxArray_int32_T **pEmxArray
 // Return Type  : void
 //
-void emxFree_creal_T(emxArray_creal_T **pEmxArray)
+void emxFree_int32_T(emxArray_int32_T **pEmxArray)
 {
-  if (*pEmxArray != (emxArray_creal_T *)NULL) {
-    if (((*pEmxArray)->data != (creal_T *)NULL) && (*pEmxArray)->canFreeData) {
+  if (*pEmxArray != (emxArray_int32_T *)NULL) {
+    if (((*pEmxArray)->data != (int *)NULL) && (*pEmxArray)->canFreeData) {
       free((void *)(*pEmxArray)->data);
     }
 
     free((void *)(*pEmxArray)->size);
     free((void *)*pEmxArray);
-    *pEmxArray = (emxArray_creal_T *)NULL;
+    *pEmxArray = (emxArray_int32_T *)NULL;
+  }
+}
+
+//
+// Arguments    : emxArray_real32_T **pEmxArray
+// Return Type  : void
+//
+void emxFree_real32_T(emxArray_real32_T **pEmxArray)
+{
+  if (*pEmxArray != (emxArray_real32_T *)NULL) {
+    if (((*pEmxArray)->data != (float *)NULL) && (*pEmxArray)->canFreeData) {
+      free((void *)(*pEmxArray)->data);
+    }
+
+    free((void *)(*pEmxArray)->size);
+    free((void *)*pEmxArray);
+    *pEmxArray = (emxArray_real32_T *)NULL;
   }
 }
 
@@ -99,17 +116,38 @@ void emxFree_real_T(emxArray_real_T **pEmxArray)
 }
 
 //
-// Arguments    : emxArray_creal_T **pEmxArray
+// Arguments    : emxArray_int32_T **pEmxArray
 //                int numDimensions
 // Return Type  : void
 //
-void emxInit_creal_T(emxArray_creal_T **pEmxArray, int numDimensions)
+void emxInit_int32_T(emxArray_int32_T **pEmxArray, int numDimensions)
 {
-  emxArray_creal_T *emxArray;
+  emxArray_int32_T *emxArray;
   int i;
-  *pEmxArray = (emxArray_creal_T *)malloc(sizeof(emxArray_creal_T));
+  *pEmxArray = (emxArray_int32_T *)malloc(sizeof(emxArray_int32_T));
   emxArray = *pEmxArray;
-  emxArray->data = (creal_T *)NULL;
+  emxArray->data = (int *)NULL;
+  emxArray->numDimensions = numDimensions;
+  emxArray->size = (int *)malloc((unsigned int)(sizeof(int) * numDimensions));
+  emxArray->allocatedSize = 0;
+  emxArray->canFreeData = true;
+  for (i = 0; i < numDimensions; i++) {
+    emxArray->size[i] = 0;
+  }
+}
+
+//
+// Arguments    : emxArray_real32_T **pEmxArray
+//                int numDimensions
+// Return Type  : void
+//
+void emxInit_real32_T(emxArray_real32_T **pEmxArray, int numDimensions)
+{
+  emxArray_real32_T *emxArray;
+  int i;
+  *pEmxArray = (emxArray_real32_T *)malloc(sizeof(emxArray_real32_T));
+  emxArray = *pEmxArray;
+  emxArray->data = (float *)NULL;
   emxArray->numDimensions = numDimensions;
   emxArray->size = (int *)malloc((unsigned int)(sizeof(int) * numDimensions));
   emxArray->allocatedSize = 0;
@@ -162,7 +200,7 @@ void emxInit_real_T1(emxArray_real_T **pEmxArray, int numDimensions)
 }
 
 //
-// File trailer for extractPowerSpectrum_emxutil.cpp
+// File trailer for ecg_var_filter_emxutil.cpp
 //
 // [EOF]
 //

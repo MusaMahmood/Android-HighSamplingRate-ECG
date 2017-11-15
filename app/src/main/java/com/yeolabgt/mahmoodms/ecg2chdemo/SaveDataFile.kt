@@ -15,7 +15,7 @@ import java.io.IOException
  */
 
 internal class SaveDataFile @Throws(IOException::class)
-constructor(directory: String, fileName: String, byteResolution: Int, increment: Double) {
+constructor(directory: String, fileName: String, byteResolution: Int, increment: Double, saveTimestamps: Boolean = false, includeClass: Boolean = false) {
     //Math Stuff
     private var mLinesWritten: Int = 0 //for timestamp
     private var mIncrement: Double = 0.toDouble()
@@ -48,6 +48,8 @@ constructor(directory: String, fileName: String, byteResolution: Int, increment:
             this.resolutionBits = byteResolution
             this.mIncrement = increment
             this.initialized = true
+            this.saveTimestamps = saveTimestamps
+            this.includeClass = includeClass
         }
     }
 
