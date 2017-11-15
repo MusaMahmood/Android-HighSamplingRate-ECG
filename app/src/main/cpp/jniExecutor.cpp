@@ -14,29 +14,12 @@
 #define  LOG_TAG "jniExecutor-cpp"
 #define  LOGE(...)  __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
-static emxArray_real_T *argInit()
-{
-    emxArray_real_T *result;
-    static int iv0[1] = { 2 };
-    int idx0;
-    // Set the size of the array.
-    // Change this size to the value that the application requires.
-    result = emxCreateND_real_T(1, *(int (*)[1])&iv0[0]);
-
-    // Loop over the array to initialize each element.
-    for (idx0 = 0; idx0 < result->size[0U]; idx0++) {
-        // Set the value of the array element.
-        // Change this value to the value that the application requires.
-        result->data[idx0] = 0.0;
-    }
-    return result;
-}
-
 // Function Definitions
 extern "C" {
 JNIEXPORT jfloatArray JNICALL
 Java_com_yeolabgt_mahmoodms_ecg2chdemo_DeviceControlActivity_jecgVarFilter(
-        JNIEnv *env, jobject jobject1, jdoubleArray data, jdouble sample_rate, jdouble window_length) {
+        JNIEnv *env, jobject jobject1, jdoubleArray data, jdouble sample_rate,
+        jdouble window_length) {
     jdouble *X1 = env->GetDoubleArrayElements(data, NULL);
     int iv0[1] = {(int) window_length};
     //TODO; also try:
@@ -46,7 +29,7 @@ Java_com_yeolabgt_mahmoodms_ecg2chdemo_DeviceControlActivity_jecgVarFilter(
     }
     emxArray_real32_T *Y;
     emxInitArray_real32_T(&Y, 2);
-    emxArray_real_T *X = emxCreateND_real_T(1, *(int (*)[1])&iv0[0]);
+    emxArray_real_T *X = emxCreateND_real_T(1, *(int (*)[1]) &iv0[0]);
     for (int i = 0; i < X->size[1]; ++i) {
         X->data[i] = X1[i];
     }
@@ -86,7 +69,7 @@ Java_com_yeolabgt_mahmoodms_ecg2chdemo_DeviceControlActivity_jLoadfPSD(
     jdoubleArray m_result = env->NewDoubleArray(sampleRate);
     double fPSD[sampleRate];
     for (int i = 0; i < sampleRate; i++) {
-        fPSD[i] = (double)i * (double)sampleRate / (double) (sampleRate*2);
+        fPSD[i] = (double) i * (double) sampleRate / (double) (sampleRate * 2);
     }
     env->SetDoubleArrayRegion(m_result, 0, sampleRate, fPSD);
     return m_result;
@@ -101,7 +84,7 @@ Java_com_yeolabgt_mahmoodms_ecg2chdemo_DeviceControlActivity_jmainInitialization
         ecg_var_filter_initialize();
         return 0;
     } else {
-ecg_var_filter_terminate();
+        ecg_var_filter_terminate();
         return -1;
     }
 }

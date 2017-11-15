@@ -1,5 +1,6 @@
 package com.yeolabgt.mahmoodms.ecg2chdemo
 
+import android.util.Log
 import com.androidplot.xy.LineAndPointFormatter
 import com.androidplot.xy.SimpleXYSeries
 
@@ -61,7 +62,11 @@ internal class GraphAdapter
     fun clearPlot() {
         if (this.series != null) {
             while (this.series!!.size() > 0) {
-                this.series!!.removeFirst()
+                try {
+                    this.series!!.removeFirst()
+                } catch (e :NoSuchElementException) {
+                    Log.e(TAG, "No Such Element!!", e)
+                }
             }
         }
     }
@@ -78,5 +83,9 @@ internal class GraphAdapter
             series!!.removeLast()
         }
         series!!.addLast(x, y)
+    }
+
+    companion object {
+        private val TAG = GraphAdapter::class.java.simpleName
     }
 }

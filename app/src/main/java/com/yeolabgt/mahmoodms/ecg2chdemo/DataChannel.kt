@@ -57,6 +57,16 @@ internal class DataChannel(var chEnabled: Boolean, MSBFirst: Boolean, //Classifi
     companion object {
         private var MSBFirst: Boolean = false
 
+        fun bytesToDoubleMPUAccel(a1: Byte, a2: Byte): Double {
+            val unsigned: Int = unsignedBytesToInt(a1, a2, MSBFirst)
+            return unsignedToSigned16bit(unsigned).toDouble() / 32767.0 * 16.0
+        }
+
+        fun bytesToDoubleMPUGyro(a1: Byte, a2: Byte): Double {
+            val unsigned: Int = unsignedBytesToInt(a1, a2, MSBFirst)
+            return unsignedToSigned16bit(unsigned).toDouble() / 32767.0 * 4000.0
+        }
+
         fun bytesToFloat32(a1: Byte, a2: Byte, a3: Byte): Float {
             val unsigned = unsignedBytesToInt(a1, a2, a3, MSBFirst)
             return unsignedToSigned24bit(unsigned).toFloat() / 8388607.0.toFloat() * 2.25.toFloat()

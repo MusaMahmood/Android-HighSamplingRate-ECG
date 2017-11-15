@@ -17,25 +17,32 @@ import java.io.IOException
 internal class SaveDataFile @Throws(IOException::class)
 constructor(directory: String, fileName: String, byteResolution: Int, increment: Double, saveTimestamps: Boolean = false, includeClass: Boolean = false) {
     //Math Stuff
-    private var mLinesWritten: Int = 0 //for timestamp
+    var mLinesWrittenCurrentFile: Int = 0
+    private var mLinesWrittenTotal: Long = 0 //for timestamp
     private var mIncrement: Double = 0.toDouble()
     private var fpPrecision: Short = 64 //float vs double (default)
+    var initialized = false
     var resolutionBits: Int = 0
         private set
     private var includeClass = true //Saves by default, no need to change.
     private var saveTimestamps = false
-    private var initialized = false
     private var csvWriter: CSVWriter? = null
     lateinit var file: File
 
     init {
+        createNewFile(directory, fileName)
+        this.resolutionBits = byteResolution
+        this.mIncrement = increment
+        this.saveTimestamps = saveTimestamps
+        this.includeClass = includeClass
+    }
+
+    fun createNewFile(directory: String, fileName: String) {
         val root = Environment.getExternalStorageDirectory()
         if (root.canWrite()) {
             val dir = File(root.absolutePath + directory)
             val resultMkdir = dir.mkdirs()
-            if (!resultMkdir) {
-                Log.e(TAG, "MKDIRS FAILED")
-            }
+            Log.d(TAG, "dir.mkdir = "+resultMkdir)
             this.file = File(dir, fileName + ".csv")
             if (this.file.exists() && !this.file.isDirectory) {
                 Log.d(TAG, "File " + this.file.toString()
@@ -45,12 +52,8 @@ constructor(directory: String, fileName: String, byteResolution: Int, increment:
             } else {
                 this.csvWriter = CSVWriter(FileWriter(this.file))
             }
-            this.resolutionBits = byteResolution
-            this.mIncrement = increment
-            this.initialized = true
-            this.saveTimestamps = saveTimestamps
-            this.includeClass = includeClass
         }
+        this.initialized = true
     }
 
     fun setFpPrecision(fpPrecision: Short) {
@@ -70,6 +73,22 @@ constructor(directory: String, fileName: String, byteResolution: Int, increment:
             writeToDiskDouble(*byteArrays)
         } else if (this.fpPrecision.toInt() == 32) {
             writeToDiskFloat(*byteArrays)
+        }
+    }
+
+    /**
+     *
+     * @param bytes split into 6 colns:
+     */
+    fun exportDataWithTimestampMPU(bytes: ByteArray?) {
+        for (i in 0 until bytes!!.size / 12) {
+            val ax = DataChannel.bytesToDoubleMPUAccel(bytes[12 * i], bytes[12 * i + 1])
+            val ay = DataChannel.bytesToDoubleMPUAccel(bytes[12 * i + 2], bytes[12 * i + 3])
+            val az = DataChannel.bytesToDoubleMPUAccel(bytes[12 * i + 4], bytes[12 * i + 5])
+            val gx = DataChannel.bytesToDoubleMPUGyro(bytes[12 * i + 6], bytes[12 * i + 7])
+            val gy = DataChannel.bytesToDoubleMPUGyro(bytes[12 * i + 8], bytes[12 * i + 9])
+            val gz = DataChannel.bytesToDoubleMPUGyro(bytes[12 * i + 10], bytes[12 * i + 11])
+            exportDataDouble(ax, ay, az, gx, gy, gz)
         }
     }
 
@@ -135,9 +154,9 @@ constructor(directory: String, fileName: String, byteResolution: Int, increment:
         for (dp in 0 until numDp) {
             if (this.saveTimestamps) {
                 if (fpPrecision.toInt() == 64)
-                    writeCSVValue[dp][0] = (mLinesWritten.toDouble() * mIncrement).toString() + ""
+                    writeCSVValue[dp][0] = (mLinesWrittenTotal.toDouble() * mIncrement).toString() + ""
                 else
-                    writeCSVValue[dp][0] = (mLinesWritten.toFloat() * mIncrement).toString() + ""
+                    writeCSVValue[dp][0] = (mLinesWrittenTotal.toFloat() * mIncrement).toString() + ""
             }
             for (ch in 0 until numChannels) {
                 if (!this.saveTimestamps)
@@ -149,7 +168,8 @@ constructor(directory: String, fileName: String, byteResolution: Int, increment:
                 writeCSVValue[dp][columns - 1] = DeviceControlActivity.mSSVEPClass.toString() + ""
             }
             csvWriter!!.writeNext(writeCSVValue[dp], false)
-            this.mLinesWritten++
+            this.mLinesWrittenTotal++
+            this.mLinesWrittenCurrentFile++
         }
     }
 
@@ -164,9 +184,9 @@ constructor(directory: String, fileName: String, byteResolution: Int, increment:
         for (dp in 0 until numDp) {
             if (this.saveTimestamps) {
                 if (fpPrecision.toInt() == 64)
-                    writeCSVValue[dp][0] = (mLinesWritten.toDouble() * mIncrement).toString() + ""
+                    writeCSVValue[dp][0] = (mLinesWrittenTotal.toDouble() * mIncrement).toString() + ""
                 else
-                    writeCSVValue[dp][0] = (mLinesWritten.toFloat() * mIncrement).toString() + ""
+                    writeCSVValue[dp][0] = (mLinesWrittenTotal.toFloat() * mIncrement).toString() + ""
             }
             for (ch in 0 until numChannels) {
                 if (!this.saveTimestamps)
@@ -178,22 +198,46 @@ constructor(directory: String, fileName: String, byteResolution: Int, increment:
                 writeCSVValue[dp][columns - 1] = DeviceControlActivity.mSSVEPClass.toString() + ""
             }
             csvWriter!!.writeNext(writeCSVValue[dp], false)
-            this.mLinesWritten++
+            this.mLinesWrittenTotal++
+            this.mLinesWrittenCurrentFile++
         }
+    }
+
+    /**
+     * Writes 6 data points + timestamp
+     * @param a accx
+     * @param b accy
+     * @param c accz
+     * @param d gyrx
+     * @param e gyry
+     * @param f gyrz
+     */
+    private fun exportDataDouble(a: Double, b: Double, c: Double, d: Double, e: Double, f: Double) {
+        val writeCSVValue = arrayOfNulls<String>(7)
+        val timestamp = mLinesWrittenTotal.toDouble() * mIncrement
+        writeCSVValue[0] = timestamp.toString() + ""
+        writeCSVValue[1] = a.toString() + ""
+        writeCSVValue[2] = b.toString() + ""
+        writeCSVValue[3] = c.toString() + ""
+        writeCSVValue[4] = d.toString() + ""
+        writeCSVValue[5] = e.toString() + ""
+        writeCSVValue[6] = f.toString() + ""
+        this.csvWriter!!.writeNext(writeCSVValue, false)
+        this.mLinesWrittenTotal++
+        this.mLinesWrittenCurrentFile++
     }
 
     @Throws(IOException::class)
     fun terminateDataFileWriter() {
+        this.mLinesWrittenCurrentFile = 0
         if (this.initialized) {
             this.csvWriter!!.flush()
             this.csvWriter!!.close()
             this.initialized = false
-            this.mLinesWritten = 0
         }
     }
 
     companion object {
-
         private val TAG = SaveDataFile::class.java.simpleName
     }
 }
