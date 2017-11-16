@@ -75,7 +75,6 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
     //Data Variables:
     private val batteryWarning = 20//
     private var dataRate: Double = 0.toDouble()
-    private var mStimulusDelaySeconds = 0.0
     //Play Sound:
 
     private val mTimeStamp: String
@@ -90,13 +89,6 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
         val intent = intent
         deviceMacAddresses = intent.getStringArrayExtra(MainActivity.INTENT_DEVICES_KEY)
         val deviceDisplayNames = intent.getStringArrayExtra(MainActivity.INTENT_DEVICES_NAMES)
-        val intentStimulusClass = intent.getStringArrayExtra(MainActivity.INTENT_DELAY_VALUE_SECONDS)
-        if (intent.extras != null)
-            mRunTrainingBool = intent.extras!!.getBoolean(MainActivity.INTENT_TRAIN_BOOLEAN)
-        else
-            Log.e(TAG, "ERROR: intent.getExtras = null")
-
-        mStimulusDelaySeconds = Integer.valueOf(intentStimulusClass[0])!!.toDouble()
         mDeviceName = deviceDisplayNames[0]
         mDeviceAddress = deviceMacAddresses!![0]
         Log.d(TAG, "Device Names: " + Arrays.toString(deviceDisplayNames))
@@ -576,7 +568,6 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
                         i += graphAdapter.sampleRate / 250
                     }
                 }
-                Log.d(TAG, "dataChannel.totalDataPointsReceived: "+ dataChannel.totalDataPointsReceived)
             }
         }
 

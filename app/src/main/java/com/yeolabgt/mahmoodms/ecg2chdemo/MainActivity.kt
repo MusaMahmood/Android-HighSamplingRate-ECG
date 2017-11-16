@@ -24,7 +24,6 @@ import android.view.WindowManager
 import android.widget.AdapterView
 import android.widget.Button
 import android.widget.CheckBox
-import android.widget.EditText
 import android.widget.ListView
 import android.widget.Toast
 
@@ -38,7 +37,6 @@ import java.util.ArrayList
 
 class MainActivity : Activity() {
     private var mScanning: Boolean = false
-    private var mRunTraining = false
     private var mHandler: Handler? = null
     private var mBluetoothAdapter: BluetoothAdapter? = null
     private var scannedDeviceAdapter: ScannedDeviceAdapter? = null
@@ -46,8 +44,6 @@ class MainActivity : Activity() {
     private val mDeviceAddressesMAC = ArrayList<String>()
     private val mDeviceNames = ArrayList<String>()
     private var mDevicesSelectedCount = 0
-
-    private lateinit var mEditDelayText: EditText
 
     private val mScanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
@@ -98,7 +94,6 @@ class MainActivity : Activity() {
         selectedDeviceAdapter = ScannedDeviceAdapter(this, R.layout.scanning_item, ArrayList())
         scanningDeviceListView.adapter = scannedDeviceAdapter
         selectedDeviceListView.adapter = selectedDeviceAdapter
-        mEditDelayText = findViewById(R.id.editDelayText)
         // Click Item Listener:
         scanningDeviceListView.onItemClickListener = AdapterView.OnItemClickListener { _, _, position, _ ->
             val item = scannedDeviceAdapter!!.getItem(position)
@@ -130,13 +125,9 @@ class MainActivity : Activity() {
                 if (!mDeviceAddressesMAC.isEmpty()) {
                     val selectedDeviceArray = mDeviceAddressesMAC.toTypedArray()
                     val selectedDeviceNames = mDeviceNames.toTypedArray()
-                    val selectedStimulus = arrayOfNulls<String>(1)
-                    selectedStimulus[0] = mEditDelayText.text.toString()
                     val intent = Intent(this@MainActivity, DeviceControlActivity::class.java)
                     intent.putExtra(INTENT_DEVICES_KEY, selectedDeviceArray)
                     intent.putExtra(INTENT_DEVICES_NAMES, selectedDeviceNames)
-                    intent.putExtra(INTENT_DELAY_VALUE_SECONDS, selectedStimulus)
-                    intent.putExtra(INTENT_TRAIN_BOOLEAN, mRunTraining)
                     startActivity(intent)
                 } else {
                     Toast.makeText(this@MainActivity, "No Devices Selected!", Toast.LENGTH_SHORT).show()
@@ -152,13 +143,6 @@ class MainActivity : Activity() {
             return false
         }
         return true
-    }
-
-    fun onCheckboxClicked(view: View) {
-        val checked = (view as CheckBox).isChecked
-        when (view.getId()) {
-            R.id.trainingCheckbox -> mRunTraining = checked
-        }
     }
 
     override fun onPause() {
@@ -245,10 +229,8 @@ class MainActivity : Activity() {
         private val MULTIPLE_PERMISSIONS_REQUEST = 139
         private val SCAN_PERIOD: Long = 10000
         private val REQUEST_ENABLE_BT = 12
-        val INTENT_TRAIN_BOOLEAN = "BOOLEAN_TO_PARSE"
         val INTENT_DEVICES_KEY = "DEVICES_TO_PARSE"
         val INTENT_DEVICES_NAMES = "DEVICE_NAMES_TO_PARSE"
-        val INTENT_DELAY_VALUE_SECONDS = "DELAY_VALUE_SECONDS"
         val PERMISSIONS_LIST = arrayOf(
                 Manifest.permission.ACCESS_COARSE_LOCATION,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE,
