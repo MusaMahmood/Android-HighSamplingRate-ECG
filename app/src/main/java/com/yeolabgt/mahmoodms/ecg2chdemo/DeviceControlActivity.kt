@@ -515,7 +515,7 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
             getDataRateBytes2(dataMPU.size) //+=240
             mMPU!!.handleNewData(dataMPU)
             mSaveFileMPU!!.exportDataWithTimestampMPU(mMPU!!.characteristicDataPacketBytes)
-            if (mSaveFileMPU!!.mLinesWrittenCurrentFile > 325) { //TODO: FIX TO 1048576z
+            if (mSaveFileMPU!!.mLinesWrittenCurrentFile > 1048576) {
                 mSaveFileMPU!!.terminateDataFileWriter()
                 createNewFileMPU()
             }
@@ -535,7 +535,8 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
             mCh2!!.chEnabled = false
             if (mCh1!!.characteristicDataPacketBytes != null && mCh2!!.characteristicDataPacketBytes != null) {
                 mPrimarySaveDataFile!!.writeToDisk(mCh1!!.characteristicDataPacketBytes, mCh2!!.characteristicDataPacketBytes)
-                if(mPrimarySaveDataFile!!.mLinesWrittenCurrentFile > 1048576) {//TODO: FIX TO 1048576z
+//                Log.d(TAG, "mLinesWrittenTotal: "+mPrimarySaveDataFile!!.mLinesWrittenTotal)
+                if(mPrimarySaveDataFile!!.mLinesWrittenCurrentFile > 1048576) {
                     mPrimarySaveDataFile!!.terminateDataFileWriter()
                     createNewFile()
                 }
@@ -550,7 +551,6 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
             val filterArray = DoubleArray(bufferLength)
             System.arraycopy(dataChannel.classificationBuffer, dataChannel.classificationBufferSize-bufferLength-1, filterArray, 0, bufferLength)
             val filteredData = jSSVEPCfilter(filterArray)
-//            val filteredData = jecgVarFilter(filterArray, mSampleRate.toDouble(), bufferLength.toDouble())
             graphAdapter!!.clearPlot()
 
             for (i in filteredData.indices) { // gA.addDataPointTimeDomain(y,x)
@@ -576,6 +576,7 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
                         i += graphAdapter.sampleRate / 250
                     }
                 }
+                Log.d(TAG, "dataChannel.totalDataPointsReceived: "+ dataChannel.totalDataPointsReceived)
             }
         }
 
