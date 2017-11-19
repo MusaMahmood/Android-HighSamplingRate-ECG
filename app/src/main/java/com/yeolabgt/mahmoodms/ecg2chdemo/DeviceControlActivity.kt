@@ -140,9 +140,11 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
         val files = ArrayList<Uri>()
         val context = applicationContext
         val uii = FileProvider.getUriForFile(context, context.packageName + ".provider", mPrimarySaveDataFile!!.file)
-        val uii2 = FileProvider.getUriForFile(context, context.packageName + ".provider", mSaveFileMPU!!.file)
         files.add(uii)
-        files.add(uii2)
+        if(mSaveFileMPU!=null) {
+            val uii2 = FileProvider.getUriForFile(context, context.packageName + ".provider", mSaveFileMPU!!.file)
+            files.add(uii2)
+        }
         val exportData = Intent(Intent.ACTION_SEND_MULTIPLE)
         exportData.putExtra(Intent.EXTRA_SUBJECT, "ECG Sensor Data Export Details")
         exportData.putParcelableArrayListExtra(Intent.EXTRA_STREAM, files)
@@ -182,7 +184,7 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
             Toast.makeText(this, "No Devices Queued, Restart!", Toast.LENGTH_SHORT).show()
         }
         mActBle = ActBle(this, mBluetoothManager, this)
-        mBluetoothGattArray = Array(deviceMacAddresses!!.size, {i -> mActBle!!.connect(mBluetoothDeviceArray[i]) })
+        mBluetoothGattArray = Array(deviceMacAddresses!!.size, { i -> mActBle!!.connect(mBluetoothDeviceArray[i]) })
         for (i in mBluetoothDeviceArray.indices) {
             Log.e(TAG, "Connecting to Device: " + (mBluetoothDeviceArray[i]!!.name + " " + mBluetoothDeviceArray[i]!!.address))
             if ("EMG 250Hz" == mBluetoothDeviceArray[i]!!.name) {
@@ -213,7 +215,7 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
                     mSampleRate = 250
                 }
             }
-            mPacketBuffer = mSampleRate/250
+            mPacketBuffer = mSampleRate / 250
             Log.e(TAG, "mSampleRate: " + mSampleRate + "Hz")
             if (!mGraphInitializedBoolean) setupGraph()
 
@@ -231,10 +233,10 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
     private fun createNewFile() {
         val directory = "/ECGData"
         val fileNameTimeStamped = "ECGData_" + mTimeStamp + "_" + mSampleRate.toString() + "Hz"
-        if(mPrimarySaveDataFile == null) {
+        if (mPrimarySaveDataFile == null) {
             Log.e(TAG, "fileTimeStamp: " + fileNameTimeStamped)
             mPrimarySaveDataFile = SaveDataFile(directory, fileNameTimeStamped,
-                        24, 1.toDouble() / mSampleRate, true, false)
+                    24, 1.toDouble() / mSampleRate, true, false)
         } else if (!mPrimarySaveDataFile!!.initialized) {
             Log.e(TAG, "New Filename: " + fileNameTimeStamped)
             mPrimarySaveDataFile?.createNewFile(directory, fileNameTimeStamped)
@@ -244,7 +246,7 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
     private fun createNewFileMPU() {
         val directory = "/MPUData"
         val fileNameTimeStamped = "MPUData_" + mTimeStamp
-        if(mSaveFileMPU == null) {
+        if (mSaveFileMPU == null) {
             Log.e(TAG, "fileTimeStamp: " + fileNameTimeStamped)
             mSaveFileMPU = SaveDataFile(directory, fileNameTimeStamped,
                     16, 0.032, true, false)
@@ -263,7 +265,7 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
         mGraphAdapterCh2!!.plotData = true
         mGraphAdapterCh1!!.setPointWidth(2.toFloat())
         mGraphAdapterCh2!!.setPointWidth(2.toFloat())
-        mTimeDomainPlotAdapter = XYPlotAdapter(findViewById(R.id.eegTimeDomainXYPlot), false, if (mSampleRate<1000) 4 * mSampleRate else 2000)
+        mTimeDomainPlotAdapter = XYPlotAdapter(findViewById(R.id.eegTimeDomainXYPlot), false, if (mSampleRate < 1000) 4 * mSampleRate else 2000)
         if (mTimeDomainPlotAdapter!!.xyPlot != null) {
             mTimeDomainPlotAdapter!!.xyPlot!!.addSeries(mGraphAdapterCh1!!.series, mGraphAdapterCh1!!.lineAndPointFormatter)
             mTimeDomainPlotAdapter!!.xyPlot!!.addSeries(mGraphAdapterCh2!!.series, mGraphAdapterCh2!!.lineAndPointFormatter)
@@ -412,11 +414,11 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
                 }
                 if (AppConstant.SERVICE_DEVICE_INFO == service.uuid) {
                     //Read the device serial number (if available)
-                    if(service.getCharacteristic(AppConstant.CHAR_SERIAL_NUMBER) != null) {
+                    if (service.getCharacteristic(AppConstant.CHAR_SERIAL_NUMBER) != null) {
                         mActBle!!.readCharacteristic(gatt, service.getCharacteristic(AppConstant.CHAR_SERIAL_NUMBER))
                     }
                     //Read the device software version (if available)
-                    if(service.getCharacteristic(AppConstant.CHAR_SOFTWARE_REV) != null) {
+                    if (service.getCharacteristic(AppConstant.CHAR_SOFTWARE_REV) != null) {
                         mActBle!!.readCharacteristic(gatt, service.getCharacteristic(AppConstant.CHAR_SOFTWARE_REV))
                     }
                 }
@@ -456,9 +458,9 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
         Log.i(TAG, "onCharacteristicRead")
         if (status == BluetoothGatt.GATT_SUCCESS) {
             if (AppConstant.CHAR_BATTERY_LEVEL == characteristic.uuid) {
-                if(characteristic.value!=null) {
+                if (characteristic.value != null) {
 //                    val batteryLevel = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT16, 0)
-                    val batteryLevel = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 0)
+                    val batteryLevel = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT16, 0)
                     updateBatteryStatus(batteryLevel)
                     Log.i(TAG, "Battery Level :: " + batteryLevel)
                 }
@@ -470,12 +472,12 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
 
     override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
         if (mCh1 == null || mCh2 == null) {
-            mCh1 = DataChannel(false, mMSBFirst, if (mSampleRate<1000) 4 * mSampleRate else 2000)
-            mCh2 = DataChannel(false, mMSBFirst, if (mSampleRate<1000) 4 * mSampleRate else 2000)
+            mCh1 = DataChannel(false, mMSBFirst, if (mSampleRate < 1000) 4 * mSampleRate else 2000)
+            mCh2 = DataChannel(false, mMSBFirst, if (mSampleRate < 1000) 4 * mSampleRate else 2000)
         }
 
         if (AppConstant.CHAR_BATTERY_LEVEL == characteristic.uuid) {
-            val batteryLevel = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 0)!!
+            val batteryLevel = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT16, 0)!!
             updateBatteryStatus(batteryLevel)
         }
 
@@ -485,9 +487,11 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
                 mCh1!!.chEnabled = true
             }
             getDataRateBytes(mNewEEGdataBytes.size)
-            if (mEEGConnectedAllChannels) {
-                mCh1!!.handleNewData(mNewEEGdataBytes)
-            }
+//            if (mEEGConnectedAllChannels) {
+            mCh1!!.handleNewData(mNewEEGdataBytes)
+            addToGraphBuffer(mCh1!!, mGraphAdapterCh1)
+            mPrimarySaveDataFile?.writeToDisk(mCh1?.characteristicDataPacketBytes)
+//            }
         }
 
         if (AppConstant.CHAR_EEG_CH2_SIGNAL == characteristic.uuid) {
@@ -515,10 +519,9 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
 
         if (mCh1!!.chEnabled && mCh2!!.chEnabled) {
             mNumber2ChPackets++
-            if (mNumber2ChPackets == if (mFilterData) mPacketBuffer*3 else mPacketBuffer) {
+            if (mNumber2ChPackets == if (mFilterData) mPacketBuffer * 3 else mPacketBuffer) {
                 //make sure they are aligned:
                 mCh2!!.totalDataPointsReceived = mCh1!!.totalDataPointsReceived
-                addToGraphBuffer(mCh1!!, mGraphAdapterCh1)
                 addToGraphBuffer(mCh2!!, mGraphAdapterCh2)
                 mNumber2ChPackets = 0
             }
@@ -528,7 +531,7 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
             if (mCh1!!.characteristicDataPacketBytes != null && mCh2!!.characteristicDataPacketBytes != null) {
                 mPrimarySaveDataFile!!.writeToDisk(mCh1!!.characteristicDataPacketBytes, mCh2!!.characteristicDataPacketBytes)
 //                Log.d(TAG, "mLinesWrittenTotal: "+mPrimarySaveDataFile!!.mLinesWrittenTotal)
-                if(mPrimarySaveDataFile!!.mLinesWrittenCurrentFile > 1048576) {
+                if (mPrimarySaveDataFile!!.mLinesWrittenCurrentFile > 1048576) {
                     mPrimarySaveDataFile!!.terminateDataFileWriter()
                     createNewFile()
                 }
@@ -538,15 +541,15 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
 
     private fun addToGraphBuffer(dataChannel: DataChannel, graphAdapter: GraphAdapter?) {
         if (mFilterData && dataChannel.totalDataPointsReceived > 1000 && mSampleRate < 1000) {
-            val bufferLength = if(mSampleRate == 250) 4 * mSampleRate else mSampleRate*2
+            val bufferLength = if (mSampleRate == 250) 4 * mSampleRate else mSampleRate * 2
             graphAdapter?.setSeriesHistoryDataPoints(bufferLength)
             val filterArray = DoubleArray(bufferLength)
-            System.arraycopy(dataChannel.classificationBuffer, dataChannel.classificationBufferSize-bufferLength-1, filterArray, 0, bufferLength)
+            System.arraycopy(dataChannel.classificationBuffer, dataChannel.classificationBufferSize - bufferLength - 1, filterArray, 0, bufferLength)
             val filteredData = jSSVEPCfilter(filterArray)
             graphAdapter!!.clearPlot()
 
             for (i in filteredData.indices) { // gA.addDataPointTimeDomain(y,x)
-                graphAdapter.addDataPointTimeDomainAlt(filteredData[i].toDouble(),dataChannel.totalDataPointsReceived - (bufferLength - 1) + i)
+                graphAdapter.addDataPointTimeDomainAlt(filteredData[i].toDouble(), dataChannel.totalDataPointsReceived - (bufferLength - 1) + i)
             }
         } else {
             if (dataChannel.dataBuffer != null) {
@@ -773,6 +776,7 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
         //Save Data File
         private var mPrimarySaveDataFile: SaveDataFile? = null
         private var mSaveFileMPU: SaveDataFile? = null
+
         init {
             System.loadLibrary("ecg-lib")
         }
