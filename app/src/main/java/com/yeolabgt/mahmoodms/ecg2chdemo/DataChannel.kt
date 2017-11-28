@@ -14,7 +14,7 @@ internal class DataChannel(var chEnabled: Boolean, MSBFirst: Boolean, //Classifi
     var totalDataPointsReceived: Int = 0
     var dataBuffer: ByteArray? = null
     var classificationBuffer: DoubleArray
-    var classificationBufferFloats: FloatArray
+    private var classificationBufferFloats: FloatArray
 
     init {
         this.packetCounter = 0
@@ -51,6 +51,11 @@ internal class DataChannel(var chEnabled: Boolean, MSBFirst: Boolean, //Classifi
             this.classificationBuffer[this.classificationBufferSize - 1] = a //add to front:
             this.classificationBufferFloats[this.classificationBufferSize - 1] = a.toFloat()
         }
+    }
+
+    fun resetBuffer() {
+        this.dataBuffer = null
+        this.packetCounter = 0
     }
 
     companion object {

@@ -35,6 +35,9 @@ constructor(directory: String, fileName: String, byteResolution: Int, increment:
         this.mIncrement = increment
         this.saveTimestamps = saveTimestamps
         this.includeClass = includeClass
+        //Reset total number of lines written so file starts from 0 s:
+        this.mLinesWrittenCurrentFile = 0
+        this.mLinesWrittenTotal = 0
     }
 
     fun createNewFile(directory: String, fileName: String) {

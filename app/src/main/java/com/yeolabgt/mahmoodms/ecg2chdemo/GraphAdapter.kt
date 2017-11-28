@@ -15,14 +15,14 @@ internal class GraphAdapter
     var series: SimpleXYSeries? = null
     var lineAndPointFormatter: LineAndPointFormatter = LineAndPointFormatter(lineAndPointFormatterColor, null, null, null)
     var sampleRate: Int = 0
-    private var xAxisIncrement: Double = 0.toDouble()
+    var xAxisIncrement: Double = 0.toDouble()
     var plotData: Boolean = false
 
     init {
         setPointWidth(5f) //Def value:
         this.series = SimpleXYSeries(XYSeriesTitle)
         if (useImplicitXVals) this.series!!.useImplicitXVals()
-        this.plotData = false //Don't plot data until explicitly told to do so:
+        this.plotData = true  // Plot by default
     }
 
     fun setPointWidth(width: Float) {
@@ -31,14 +31,6 @@ internal class GraphAdapter
 
     fun setSeriesHistoryDataPoints(seriesHistoryDataPoints: Int) {
         this.seriesHistoryDataPoints = seriesHistoryDataPoints
-    }
-
-    fun addDataPointsGeneric(xdata: DoubleArray, ydata: DoubleArray, istart: Int, iend: Int) {
-        if (this.plotData) {
-            for (i in istart until iend) {
-                plot(xdata[i], ydata[i])
-            }
-        }
     }
 
     fun addDataPointTimeDomain(data: Double, index: Int) {
@@ -54,7 +46,7 @@ internal class GraphAdapter
         setxAxisIncrement(1.toDouble() / sampleRate.toDouble())
     }
 
-    private fun setxAxisIncrement(xAxisIncrement: Double) {
+    fun setxAxisIncrement(xAxisIncrement: Double) {
         this.xAxisIncrement = xAxisIncrement
     }
 
