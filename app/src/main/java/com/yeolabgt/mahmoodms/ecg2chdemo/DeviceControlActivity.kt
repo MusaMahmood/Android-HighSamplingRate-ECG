@@ -62,7 +62,6 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
     //UI Elements - TextViews, Buttons, etc
     private var mBatteryLevel: TextView? = null
     private var mDataRate: TextView? = null
-    private var mSSVEPClassTextView: TextView? = null
     private var mChannelSelect: ToggleButton? = null
     private var menu: Menu? = null
     //Data throughput counter
@@ -113,19 +112,17 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
         //Initialize Bluetooth
         if (!mBleInitializedBoolean) initializeBluetoothArray()
         mLastTime = System.currentTimeMillis()
-        mSSVEPClassTextView = findViewById(R.id.eegClassTextView)
         //UI Listeners
-        val toggleButton1 = findViewById<ToggleButton>(R.id.toggleButtonWheelchairControl)
+        val toggleButton1 = findViewById<ToggleButton>(R.id.toggleButtonGraphSet1)
         toggleButton1.setOnCheckedChangeListener { _, b ->
             mFilterData = b
         }
-        mChannelSelect = findViewById(R.id.toggleButtonCh1)
+        mChannelSelect = findViewById(R.id.toggleButtonGraphSet2)
         mChannelSelect!!.setOnCheckedChangeListener { _, b ->
             mGraphAdapterCh1!!.clearPlot()
             mGraphAdapterCh2!!.clearPlot()
-//            mTimeDomainPlotAdapter!!.xyPlot?.clear()
             mGraphAdapterCh1!!.plotData = b
-            mGraphAdapterCh2!!.plotData = !b
+            mGraphAdapterCh2!!.plotData = b
         }
         mExportButton.setOnClickListener { exportData() }
     }
@@ -265,7 +262,7 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
         mGraphAdapterCh2!!.plotData = true
         mGraphAdapterCh1!!.setPointWidth(2.toFloat())
         mGraphAdapterCh2!!.setPointWidth(2.toFloat())
-        mTimeDomainPlotAdapter = XYPlotAdapter(findViewById(R.id.eegTimeDomainXYPlot), false, if (mSampleRate < 1000) 4 * mSampleRate else 2000)
+        mTimeDomainPlotAdapter = XYPlotAdapter(findViewById(R.id.ecgTimeDomainXYPlot), false, if (mSampleRate < 1000) 4 * mSampleRate else 2000)
         if (mTimeDomainPlotAdapter!!.xyPlot != null) {
             mTimeDomainPlotAdapter!!.xyPlot!!.addSeries(mGraphAdapterCh1!!.series, mGraphAdapterCh1!!.lineAndPointFormatter)
             mTimeDomainPlotAdapter!!.xyPlot!!.addSeries(mGraphAdapterCh2!!.series, mGraphAdapterCh2!!.lineAndPointFormatter)
@@ -459,7 +456,6 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
         if (status == BluetoothGatt.GATT_SUCCESS) {
             if (AppConstant.CHAR_BATTERY_LEVEL == characteristic.uuid) {
                 if (characteristic.value != null) {
-//                    val batteryLevel = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT16, 0)
                     val batteryLevel = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT16, 0)
                     updateBatteryStatus(batteryLevel)
                     Log.i(TAG, "Battery Level :: " + batteryLevel)

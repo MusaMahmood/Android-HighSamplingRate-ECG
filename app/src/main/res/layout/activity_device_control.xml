@@ -6,17 +6,34 @@
               android:layout_height="match_parent"
               android:background="#FFFFFF">
 
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal">
 
+        <Button
+            android:id="@+id/button_export"
+            style="?android:attr/buttonStyleSmall"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.1"
+            android:text="Export"
+            android:textColor="#000000" />
+
         <ToggleButton
-            android:id="@+id/toggleButtonCh1"
+            android:id="@+id/toggleButtonGraphSet1"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="0.1"
             android:checked="true"
+            android:text="ToggleButton" />
+
+        <ToggleButton
+            android:id="@+id/toggleButtonGraphSet2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.1"
             android:text="ToggleButton" />
 
         <TextView
@@ -39,48 +56,41 @@
 
     <LinearLayout
         android:layout_width="fill_parent"
-        android:layout_height="0dp"
+        android:layout_height="fill_parent"
         android:gravity="center"
-        android:orientation="horizontal"
-        android:layout_weight="1"
-        >
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_weight="0.4"
+            android:orientation="vertical">
+
+                <com.androidplot.xy.XYPlot
+                    android:id="@+id/ecgTimeDomainXYPlot"
+                    style="@style/APFullScreenGraph.Light.Minimalist"
+                    android:layout_width="fill_parent"
+                    android:layout_height="fill_parent"
+                    android:layout_weight="0.4"
+                    ap:renderMode="use_background_thread" />
+
+
+                <com.androidplot.xy.XYPlot
+                    android:id="@+id/ecgTimeDomainXYPlot2"
+                    style="@style/APFullScreenGraph.Light.Minimalist"
+                    android:layout_width="fill_parent"
+                    android:layout_height="fill_parent"
+                    android:layout_weight="0.4"
+                    ap:renderMode="use_background_thread" />
+        </LinearLayout>
 
         <com.androidplot.xy.XYPlot
-            android:id="@+id/eegTimeDomainXYPlot"
+            android:id="@+id/motionDataPlot"
             style="@style/APFullScreenGraph.Light.Minimalist"
             android:layout_width="fill_parent"
             android:layout_height="fill_parent"
-            android:layout_weight="0.4"
+            android:layout_weight="1"
             ap:renderMode="use_background_thread" />
-
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
-
-        <Button
-            android:id="@+id/button_export"
-            style="?android:attr/buttonStyleSmall"
-            android:layout_width="114dp"
-            android:layout_height="wrap_content"
-            android:text="Export"
-            android:textColor="#000000" />
-
-        <TextView
-            android:id="@+id/eegClassTextView"
-            android:layout_width="72dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="TextView" />
-
-        <ToggleButton
-            android:id="@+id/toggleButtonWheelchairControl"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="ToggleButton" />
 
     </LinearLayout>
 
