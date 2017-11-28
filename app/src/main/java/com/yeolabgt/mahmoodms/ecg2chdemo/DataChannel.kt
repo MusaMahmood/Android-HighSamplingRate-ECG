@@ -53,6 +53,11 @@ internal class DataChannel(var chEnabled: Boolean, MSBFirst: Boolean, //Classifi
         }
     }
 
+    fun resetBuffer() {
+        this.dataBuffer = null
+        this.packetCounter = 0
+    }
+
     companion object {
         private var MSBFirst: Boolean = false
 
