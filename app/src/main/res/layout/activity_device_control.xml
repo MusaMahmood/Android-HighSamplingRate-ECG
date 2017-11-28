@@ -22,15 +22,7 @@
             android:textColor="#000000" />
 
         <ToggleButton
-            android:id="@+id/toggleButtonGraphSet1"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.1"
-            android:checked="true"
-            android:text="ToggleButton" />
-
-        <ToggleButton
-            android:id="@+id/toggleButtonGraphSet2"
+            android:id="@+id/toggleButtonGraph"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="0.1"

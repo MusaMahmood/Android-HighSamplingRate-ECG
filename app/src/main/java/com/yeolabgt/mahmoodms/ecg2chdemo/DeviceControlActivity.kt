@@ -115,11 +115,7 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
         if (!mBleInitializedBoolean) initializeBluetoothArray()
         mLastTime = System.currentTimeMillis()
         //UI Listeners
-        val toggleButton1 = findViewById<ToggleButton>(R.id.toggleButtonGraphSet1)
-        toggleButton1.setOnCheckedChangeListener { _, b ->
-            mFilterData = b
-        }
-        mChannelSelect = findViewById(R.id.toggleButtonGraphSet2)
+        mChannelSelect = findViewById(R.id.toggleButtonGraph)
         mChannelSelect!!.setOnCheckedChangeListener { _, b ->
             mGraphAdapterCh1!!.clearPlot()
             mGraphAdapterCh2!!.clearPlot()
@@ -217,7 +213,7 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
             mPacketBuffer = mSampleRate / 250
             Log.e(TAG, "mSampleRate: " + mSampleRate + "Hz")
             if (!mGraphInitializedBoolean) setupGraph()
-
+//            mPrimarySaveDataFile = null
             createNewFile()
         }
         mBleInitializedBoolean = true
@@ -460,6 +456,7 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
                     mActBle!!.setCharacteristicNotifications(gatt, service.getCharacteristic(AppConstant.CHAR_MPU_COMBINED), true)
                     //TODO: INITIALIZE MPU FILE HERE:
                     mMPU = DataChannel(false, true, 0)
+//                    mSaveFileMPU = null
                     createNewFileMPU()
                 }
             }
