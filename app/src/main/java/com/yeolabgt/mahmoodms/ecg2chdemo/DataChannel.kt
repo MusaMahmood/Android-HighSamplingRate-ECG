@@ -14,7 +14,7 @@ internal class DataChannel(var chEnabled: Boolean, MSBFirst: Boolean, //Classifi
     var totalDataPointsReceived: Int = 0
     var dataBuffer: ByteArray? = null
     var classificationBuffer: DoubleArray
-    var classificationBufferFloats: FloatArray
+    private var classificationBufferFloats: FloatArray
 
     init {
         this.packetCounter = 0

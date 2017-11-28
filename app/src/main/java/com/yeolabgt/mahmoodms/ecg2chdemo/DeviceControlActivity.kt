@@ -44,7 +44,8 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
     private var mGraphInitializedBoolean = false
     private var mGraphAdapterCh1: GraphAdapter? = null
     private var mGraphAdapterCh2: GraphAdapter? = null
-    private var mTimeDomainPlotAdapter: XYPlotAdapter? = null
+    private var mTimeDomainPlotAdapterCh1: XYPlotAdapter? = null
+    private var mTimeDomainPlotAdapterCh2: XYPlotAdapter? = null
     //Device Information
     private var mBleInitializedBoolean = false
     private lateinit var mBluetoothGattArray: Array<BluetoothGatt?>
@@ -56,9 +57,6 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
     //Connecting to Multiple Devices
     private var deviceMacAddresses: Array<String>? = null
     private var mEEGConnectedAllChannels = false
-    // Classification
-    private var mNumber2ChPackets = -1
-    private var mRunTrainingBool: Boolean = false
     //UI Elements - TextViews, Buttons, etc
     private var mBatteryLevel: TextView? = null
     private var mDataRate: TextView? = null
@@ -262,12 +260,11 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
         mGraphAdapterCh2!!.plotData = true
         mGraphAdapterCh1!!.setPointWidth(2.toFloat())
         mGraphAdapterCh2!!.setPointWidth(2.toFloat())
-        mTimeDomainPlotAdapter = XYPlotAdapter(findViewById(R.id.ecgTimeDomainXYPlot), false, if (mSampleRate < 1000) 4 * mSampleRate else 2000)
-        if (mTimeDomainPlotAdapter!!.xyPlot != null) {
-            mTimeDomainPlotAdapter!!.xyPlot!!.addSeries(mGraphAdapterCh1!!.series, mGraphAdapterCh1!!.lineAndPointFormatter)
-            mTimeDomainPlotAdapter!!.xyPlot!!.addSeries(mGraphAdapterCh2!!.series, mGraphAdapterCh2!!.lineAndPointFormatter)
-        }
-        val xyPlotList = listOf(mTimeDomainPlotAdapter!!.xyPlot)
+        mTimeDomainPlotAdapterCh1 = XYPlotAdapter(findViewById(R.id.ecgTimeDomainXYPlot), false, if (mSampleRate < 1000) 4 * mSampleRate else 2000)
+        mTimeDomainPlotAdapterCh2 = XYPlotAdapter(findViewById(R.id.ecgTimeDomainXYPlot2),  false, if(mSampleRate < 1000) 4 * mSampleRate else 2000)
+        mTimeDomainPlotAdapterCh1?.xyPlot?.addSeries(mGraphAdapterCh1!!.series, mGraphAdapterCh1!!.lineAndPointFormatter)
+        mTimeDomainPlotAdapterCh2?.xyPlot?.addSeries(mGraphAdapterCh2!!.series, mGraphAdapterCh2!!.lineAndPointFormatter)
+        val xyPlotList = listOf(mTimeDomainPlotAdapterCh1?.xyPlot, mTimeDomainPlotAdapterCh2?.xyPlot)
         mRedrawer = Redrawer(xyPlotList, 30f, false)
         mRedrawer!!.start()
         mGraphInitializedBoolean = true
@@ -382,7 +379,8 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
                 mFilterData = filterData
             }
 
-            mTimeDomainPlotAdapter!!.xyPlot?.redraw()
+            mTimeDomainPlotAdapterCh1!!.xyPlot?.redraw()
+            mTimeDomainPlotAdapterCh2!!.xyPlot?.redraw()
             mChannelSelect!!.isChecked = chSel
             mGraphAdapterCh1!!.plotData = chSel
             mGraphAdapterCh2!!.plotData = !chSel
@@ -478,27 +476,23 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
         }
 
         if (AppConstant.CHAR_EEG_CH1_SIGNAL == characteristic.uuid) {
+            if (!mCh1!!.chEnabled) mCh1!!.chEnabled = true
             val mNewEEGdataBytes = characteristic.value
-            if (!mCh1!!.chEnabled) {
-                mCh1!!.chEnabled = true
-            }
             getDataRateBytes(mNewEEGdataBytes.size)
-//            if (mEEGConnectedAllChannels) {
-            mCh1!!.handleNewData(mNewEEGdataBytes)
-            addToGraphBuffer(mCh1!!, mGraphAdapterCh1)
-            mPrimarySaveDataFile?.writeToDisk(mCh1?.characteristicDataPacketBytes)
-//            }
+            if (mEEGConnectedAllChannels) {
+                mCh1!!.handleNewData(mNewEEGdataBytes)
+                addToGraphBuffer(mCh1!!, mGraphAdapterCh1)
+            }
         }
 
         if (AppConstant.CHAR_EEG_CH2_SIGNAL == characteristic.uuid) {
-            if (!mCh2!!.chEnabled) {
-                mCh2!!.chEnabled = true
-            }
+            if (!mCh2!!.chEnabled) mCh2!!.chEnabled = true
             val mNewEEGdataBytes = characteristic.value
             val byteLength = mNewEEGdataBytes.size
             getDataRateBytes(byteLength)
             if (mEEGConnectedAllChannels) {
                 mCh2!!.handleNewData(mNewEEGdataBytes)
+                addToGraphBuffer(mCh2!!, mGraphAdapterCh2)
             }
         }
 
@@ -514,19 +508,11 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
         }
 
         if (mCh1!!.chEnabled && mCh2!!.chEnabled) {
-            mNumber2ChPackets++
-            if (mNumber2ChPackets == if (mFilterData) mPacketBuffer * 3 else mPacketBuffer) {
-                //make sure they are aligned:
-                mCh2!!.totalDataPointsReceived = mCh1!!.totalDataPointsReceived
-                addToGraphBuffer(mCh2!!, mGraphAdapterCh2)
-                mNumber2ChPackets = 0
-            }
             mEEGConnectedAllChannels = true
             mCh1!!.chEnabled = false
             mCh2!!.chEnabled = false
             if (mCh1!!.characteristicDataPacketBytes != null && mCh2!!.characteristicDataPacketBytes != null) {
                 mPrimarySaveDataFile!!.writeToDisk(mCh1!!.characteristicDataPacketBytes, mCh2!!.characteristicDataPacketBytes)
-//                Log.d(TAG, "mLinesWrittenTotal: "+mPrimarySaveDataFile!!.mLinesWrittenTotal)
                 if (mPrimarySaveDataFile!!.mLinesWrittenCurrentFile > 1048576) {
                     mPrimarySaveDataFile!!.terminateDataFileWriter()
                     createNewFile()
@@ -751,8 +737,7 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
 
     private external fun jmainInitialization(initialize: Boolean): Int
 
-    private external fun jecgVarFilter(data_array: DoubleArray, sampleRate: Double, windowLength: Double): FloatArray
-
+//    private external fun jecgVarFilter(data_array: DoubleArray, sampleRate: Double, windowLength: Double): FloatArray
 
     companion object {
         val HZ = "0 Hz"

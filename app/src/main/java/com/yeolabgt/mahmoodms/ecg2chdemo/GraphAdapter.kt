@@ -33,13 +33,13 @@ internal class GraphAdapter
         this.seriesHistoryDataPoints = seriesHistoryDataPoints
     }
 
-    fun addDataPointsGeneric(xdata: DoubleArray, ydata: DoubleArray, istart: Int, iend: Int) {
-        if (this.plotData) {
-            for (i in istart until iend) {
-                plot(xdata[i], ydata[i])
-            }
-        }
-    }
+//    fun addDataPointsGeneric(xdata: DoubleArray, ydata: DoubleArray, istart: Int, iend: Int) {
+//        if (this.plotData) {
+//            for (i in istart until iend) {
+//                plot(xdata[i], ydata[i])
+//            }
+//        }
+//    }
 
     fun addDataPointTimeDomain(data: Double, index: Int) {
         if (this.plotData) plot(index.toDouble() * xAxisIncrement, data)
