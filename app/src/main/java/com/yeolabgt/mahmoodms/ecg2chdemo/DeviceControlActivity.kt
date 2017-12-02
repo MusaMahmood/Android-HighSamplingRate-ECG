@@ -398,7 +398,7 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
             mTimeDomainPlotAdapterCh2!!.xyPlot?.redraw()
             mChannelSelect!!.isChecked = chSel
             mGraphAdapterCh1!!.plotData = chSel
-            mGraphAdapterCh2!!.plotData = !chSel
+            mGraphAdapterCh2!!.plotData = chSel
         }
         super.onActivityResult(requestCode, resultCode, data)
     }
@@ -482,8 +482,8 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
 
     override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
         if (mCh1 == null || mCh2 == null) {
-            mCh1 = DataChannel(false, mMSBFirst, if (mSampleRate < 1000) 4 * mSampleRate else 2000)
-            mCh2 = DataChannel(false, mMSBFirst, if (mSampleRate < 1000) 4 * mSampleRate else 2000)
+            mCh1 = DataChannel(false, mMSBFirst, 4 * mSampleRate)
+            mCh2 = DataChannel(false, mMSBFirst, 4 * mSampleRate)
         }
 
         if (AppConstant.CHAR_BATTERY_LEVEL == characteristic.uuid) {
@@ -539,12 +539,12 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
     }
 
     private fun addToGraphBuffer(dataChannel: DataChannel, graphAdapter: GraphAdapter?) {
-        if (mFilterData && dataChannel.totalDataPointsReceived > 1000 && mSampleRate < 1000) {
-            val bufferLength = if (mSampleRate == 250) 4 * mSampleRate else mSampleRate * 2
+        if (mFilterData && dataChannel.totalDataPointsReceived > 4* mSampleRate/* && mSampleRate < 1000*/) {
+            val bufferLength = 4 * 250
+            //TODO: Downsample, then filter, then plot:
+            val filterArray = jdownSample(dataChannel.classificationBuffer, mSampleRate)
             graphAdapter?.setSeriesHistoryDataPoints(bufferLength)
-            val filterArray = DoubleArray(bufferLength)
-            System.arraycopy(dataChannel.classificationBuffer, dataChannel.classificationBufferSize - bufferLength - 1, filterArray, 0, bufferLength)
-            val filteredData = jSSVEPCfilter(filterArray)
+            val filteredData = jecgBandStopFilter(filterArray)
             graphAdapter!!.clearPlot()
 
             for (i in filteredData.indices) { // gA.addDataPointTimeDomain(y,x)
@@ -760,6 +760,10 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
     }
 
     private external fun jSSVEPCfilter(data: DoubleArray): FloatArray
+
+    private external fun jdownSample(data: DoubleArray, sampleRate: Int): DoubleArray
+
+    private external fun jecgBandStopFilter(data: DoubleArray): DoubleArray
 
     private external fun jmainInitialization(initialize: Boolean): Int
 

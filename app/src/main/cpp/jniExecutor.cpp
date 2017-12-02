@@ -4,43 +4,47 @@
 
 #include "rt_nonfinite.h"
 #include "ssvep_filter_f32.h"
+#include "downsample_250Hz.h"
+#include "ecg_bandstop_250Hz.h"
 
 /*Additional Includes*/
 #include <jni.h>
 #include <android/log.h>
-#include "ecg_var_filter.h"
-#include "ecg_var_filter_emxAPI.h"
 
 #define  LOG_TAG "jniExecutor-cpp"
 #define  LOGE(...)  __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
-// Function Definitions
 extern "C" {
-JNIEXPORT jfloatArray JNICALL
-Java_com_yeolabgt_mahmoodms_ecg2chdemo_DeviceControlActivity_jecgVarFilter(
-        JNIEnv *env, jobject jobject1, jdoubleArray data, jdouble sample_rate,
-        jdouble window_length) {
+JNIEXPORT jdoubleArray JNICALL
+Java_com_yeolabgt_mahmoodms_ecg2chdemo_DeviceControlActivity_jecgBandStopFilter(
+        JNIEnv *env, jobject jobject1, jdoubleArray data) {
     jdouble *X1 = env->GetDoubleArrayElements(data, NULL);
-    int iv0[1] = {(int) window_length};
-    //TODO; also try:
-    if (X1 == NULL) {
-        LOGE("ERROR - C_ARRAY IS NULL");
-        return nullptr;
-    }
-    emxArray_real32_T *Y;
-    emxInitArray_real32_T(&Y, 2);
-    emxArray_real_T *X = emxCreateND_real_T(1, *(int (*)[1]) &iv0[0]);
-    for (int i = 0; i < X->size[1]; ++i) {
-        X->data[i] = X1[i];
-    }
-    jfloatArray m_result = env->NewFloatArray(iv0[0]);
-    ecg_var_filter(X, sample_rate, window_length, Y);
-    env->SetFloatArrayRegion(m_result, 0, iv0[0], Y->data);
-    emxDestroyArray_real32_T(Y);
-    emxDestroyArray_real_T(X);
+    double Y[1000]; // First two values = Y; last 499 = cPSD
+    if (X1 == NULL) LOGE("ERROR - C_ARRAY IS NULL");
+    jdoubleArray m_result = env->NewDoubleArray(1000);
+    ecg_bandstop_250Hz(X1, Y);
+    env->SetDoubleArrayRegion(m_result, 0, 1000, Y);
     return m_result;
 }
 }
+
+
+extern "C" {
+JNIEXPORT jdoubleArray JNICALL
+Java_com_yeolabgt_mahmoodms_ecg2chdemo_DeviceControlActivity_jdownSample(
+        JNIEnv *env, jobject jobject1, jdoubleArray data, jint Fs) {
+    jdouble *X1 = env->GetDoubleArrayElements(data, NULL);
+    int Xsize[1] = {Fs*4};
+    double Y[1000]; // First two values = Y; last 499 = cPSD
+    int Ysize[2]; // First two values = Y; last 499 = cPSD
+    if (X1 == NULL) LOGE("ERROR - C_ARRAY IS NULL");
+    jdoubleArray m_result = env->NewDoubleArray(1000);
+    downsample_250Hz(X1, Xsize, Fs, &Y[0], Ysize);
+    env->SetDoubleArrayRegion(m_result, 0, 1000, Y);
+    return m_result;
+}
+}
+
 
 extern "C" {
 JNIEXPORT jfloatArray JNICALL
@@ -81,10 +85,10 @@ JNIEXPORT jint JNICALL
 Java_com_yeolabgt_mahmoodms_ecg2chdemo_DeviceControlActivity_jmainInitialization(
         JNIEnv *env, jobject obj, jboolean initialize) {
     if (!(bool) initialize) {
-        ecg_var_filter_initialize();
+        downsample_250Hz_initialize();
+        ecg_bandstop_250Hz_initialize();
         return 0;
     } else {
-        ecg_var_filter_terminate();
         return -1;
     }
 }

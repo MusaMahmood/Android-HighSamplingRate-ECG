@@ -27,10 +27,9 @@ add_library( # Sets the name of the library.
               # Provides a relative path to your source file(s).
 
                 # Main C++ Data Processing Files
-                src/main/cpp/ecg_var_filter.cpp
-                src/main/cpp/ecg_var_filter_emxutil.cpp
-                src/main/cpp/ecg_var_filter_emxAPI.cpp
                 src/main/cpp/ssvep_filter_f32.cpp
+                src/main/cpp/downsample_250Hz.cpp
+                src/main/cpp/ecg_bandstop_250Hz.cpp
 
                 # Executor
                 src/main/cpp/jniExecutor.cpp
