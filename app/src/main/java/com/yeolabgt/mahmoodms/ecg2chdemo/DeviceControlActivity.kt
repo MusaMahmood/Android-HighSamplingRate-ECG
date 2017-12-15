@@ -759,7 +759,7 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
         }
     }
 
-    private external fun jSSVEPCfilter(data: DoubleArray): FloatArray
+//    private external fun jSSVEPCfilter(data: DoubleArray): FloatArray
 
     private external fun jdownSample(data: DoubleArray, sampleRate: Int): DoubleArray
 

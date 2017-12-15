@@ -20,9 +20,6 @@ class PreferencesFragment : PreferenceFragment() {
     companion object {
         //Key Association:
         private var SETTINGS_CH_SELECT = "switch_ch"
-        private var SETTINGS_SHOW_PSDA = "psda"
-        private var SETTINGS_PSD_RANGE = "psda_long"
-        private var SETTINGS_SHOW_BUTTONS = "showUIElements"
         private var SETTINGS_SAVE_TIMESTAMPS = "timestamps"
         private var SETTINGS_SAVE_CLASS = "save_class"
         private var SETTINGS_BIT_PRECISION = "bit_precision"
@@ -30,18 +27,6 @@ class PreferencesFragment : PreferenceFragment() {
 
         fun channelSelect(context: Context): Boolean {
             return PreferenceManager.getDefaultSharedPreferences(context).getBoolean(SETTINGS_CH_SELECT, true)
-        }
-
-        fun showPSDA(context: Context): Boolean {
-            return PreferenceManager.getDefaultSharedPreferences(context).getBoolean(SETTINGS_SHOW_PSDA, true)
-        }
-
-        fun psdaWideRange(context: Context): Boolean {
-            return PreferenceManager.getDefaultSharedPreferences(context).getBoolean(SETTINGS_PSD_RANGE, false)
-        }
-
-        fun showUIElements(context: Context): Boolean {
-            return PreferenceManager.getDefaultSharedPreferences(context).getBoolean(SETTINGS_SHOW_BUTTONS, false)
         }
 
         fun saveTimestamps(context: Context): Boolean {
