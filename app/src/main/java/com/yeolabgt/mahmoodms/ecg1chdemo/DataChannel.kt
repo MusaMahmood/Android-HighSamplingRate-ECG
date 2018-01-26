@@ -1,4 +1,4 @@
-package com.yeolabgt.mahmoodms.ecg2chdemo
+package com.yeolabgt.mahmoodms.ecg1chdemo
 
 import com.google.common.primitives.Bytes
 
