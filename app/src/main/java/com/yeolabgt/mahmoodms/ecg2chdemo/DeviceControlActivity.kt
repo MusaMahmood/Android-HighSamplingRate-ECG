@@ -495,10 +495,8 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
             if (!mCh1!!.chEnabled) mCh1!!.chEnabled = true
             val mNewEEGdataBytes = characteristic.value
             getDataRateBytes(mNewEEGdataBytes.size)
-            if (mEEGConnectedAllChannels) {
-                mCh1!!.handleNewData(mNewEEGdataBytes)
-                addToGraphBuffer(mCh1!!, mGraphAdapterCh1)
-            }
+            mCh1!!.handleNewData(mNewEEGdataBytes)
+            addToGraphBuffer(mCh1!!, mGraphAdapterCh1)
         }
 
         if (AppConstant.CHAR_EEG_CH2_SIGNAL == characteristic.uuid) {
@@ -530,7 +528,7 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
             mCh2!!.chEnabled = false
             if (mCh1!!.characteristicDataPacketBytes != null && mCh2!!.characteristicDataPacketBytes != null) {
                 mPrimarySaveDataFile!!.writeToDisk(mCh1!!.characteristicDataPacketBytes, mCh2!!.characteristicDataPacketBytes)
-                if (mPrimarySaveDataFile!!.mLinesWrittenCurrentFile > 1048576) {
+                if (mPrimarySaveDataFile!!.mLinesWrittenCurrentFile > 10800000) { //3 Hrs * 3600s * 1000sps
                     mPrimarySaveDataFile!!.terminateDataFileWriter()
                     createNewFile()
                 }
