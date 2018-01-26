@@ -44,12 +44,7 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
     private var mGraphInitializedBoolean = false
     private var mGraphAdapterCh1: GraphAdapter? = null
     private var mGraphAdapterCh2: GraphAdapter? = null
-    private var mGraphAdapterMotionAX: GraphAdapter? = null
-    private var mGraphAdapterMotionAY: GraphAdapter? = null
-    private var mGraphAdapterMotionAZ: GraphAdapter? = null
     private var mTimeDomainPlotAdapterCh1: XYPlotAdapter? = null
-    private var mTimeDomainPlotAdapterCh2: XYPlotAdapter? = null
-    private var mMotionDataPlotAdapter: XYPlotAdapter? = null
     //Device Information
     private var mBleInitializedBoolean = false
     private lateinit var mBluetoothGattArray: Array<BluetoothGatt?>
@@ -249,34 +244,15 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
         // Initialize our XYPlot reference:
         mGraphAdapterCh1 = GraphAdapter(1250, "ECG Data Ch 1", false, Color.BLUE) //Color.parseColor("#19B52C") also, RED, BLUE, etc.
         mGraphAdapterCh2 = GraphAdapter(1250, "ECG Data Ch 2", false, Color.RED) //Color.parseColor("#19B52C") also, RED, BLUE, etc.
-        mGraphAdapterMotionAX = GraphAdapter(375, "Acc X", false, Color.RED)
-        mGraphAdapterMotionAY = GraphAdapter(375, "Acc Y", false, Color.GREEN)
-        mGraphAdapterMotionAZ = GraphAdapter(375, "Acc Z", false, Color.BLUE)
         //PLOT CH1 By default
         mGraphAdapterCh1!!.setPointWidth(2.toFloat())
         mGraphAdapterCh2!!.setPointWidth(2.toFloat())
-        mGraphAdapterMotionAX?.setPointWidth(2.toFloat())
-        mGraphAdapterMotionAY?.setPointWidth(2.toFloat())
-        mGraphAdapterMotionAZ?.setPointWidth(2.toFloat())
         mTimeDomainPlotAdapterCh1 = XYPlotAdapter(findViewById(R.id.ecgTimeDomainXYPlot), false, if (mSampleRate < 1000) 4 * mSampleRate else 2000)
-        mTimeDomainPlotAdapterCh2 = XYPlotAdapter(findViewById(R.id.ecgTimeDomainXYPlot2),  false, if(mSampleRate < 1000) 4 * mSampleRate else 2000)
         mTimeDomainPlotAdapterCh1?.xyPlot?.addSeries(mGraphAdapterCh1!!.series, mGraphAdapterCh1!!.lineAndPointFormatter)
-        mTimeDomainPlotAdapterCh2?.xyPlot?.addSeries(mGraphAdapterCh2!!.series, mGraphAdapterCh2!!.lineAndPointFormatter)
-        mMotionDataPlotAdapter = XYPlotAdapter(findViewById(R.id.motionDataPlot), "Time (s)", "Acc (g)", 375.0)
-        mMotionDataPlotAdapter?.xyPlot!!.addSeries(mGraphAdapterMotionAX?.series, mGraphAdapterMotionAX?.lineAndPointFormatter)
-        mMotionDataPlotAdapter?.xyPlot!!.addSeries(mGraphAdapterMotionAY?.series, mGraphAdapterMotionAY?.lineAndPointFormatter)
-        mMotionDataPlotAdapter?.xyPlot!!.addSeries(mGraphAdapterMotionAZ?.series, mGraphAdapterMotionAZ?.lineAndPointFormatter)
-        val xyPlotList = listOf(mTimeDomainPlotAdapterCh1?.xyPlot, mTimeDomainPlotAdapterCh2?.xyPlot, mMotionDataPlotAdapter?.xyPlot)
+        val xyPlotList = listOf(mTimeDomainPlotAdapterCh1?.xyPlot)
         mRedrawer = Redrawer(xyPlotList, 30f, false)
         mRedrawer!!.start()
         mGraphInitializedBoolean = true
-
-        mGraphAdapterMotionAX?.setxAxisIncrement(0.032)
-        mGraphAdapterMotionAX?.setSeriesHistoryDataPoints(375)
-        mGraphAdapterMotionAY?.setxAxisIncrement(0.032)
-        mGraphAdapterMotionAY?.setSeriesHistoryDataPoints(375)
-        mGraphAdapterMotionAZ?.setxAxisIncrement(0.032)
-        mGraphAdapterMotionAZ?.setSeriesHistoryDataPoints(375)
 
         mGraphAdapterCh1!!.setxAxisIncrementFromSampleRate(mSampleRate)
         mGraphAdapterCh2!!.setxAxisIncrementFromSampleRate(mSampleRate)
@@ -395,7 +371,6 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
             }
 
             mTimeDomainPlotAdapterCh1!!.xyPlot?.redraw()
-            mTimeDomainPlotAdapterCh2!!.xyPlot?.redraw()
             mChannelSelect!!.isChecked = chSel
             mGraphAdapterCh1!!.plotData = chSel
             mGraphAdapterCh2!!.plotData = chSel
@@ -497,6 +472,7 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
             getDataRateBytes(mNewEEGdataBytes.size)
             mCh1!!.handleNewData(mNewEEGdataBytes)
             addToGraphBuffer(mCh1!!, mGraphAdapterCh1)
+            mPrimarySaveDataFile!!.writeToDisk(mCh1?.characteristicDataPacketBytes)
         }
 
         if (AppConstant.CHAR_EEG_CH2_SIGNAL == characteristic.uuid) {
@@ -514,24 +490,11 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
             val dataMPU = characteristic.value
             getDataRateBytes2(dataMPU.size) //+=240
             mMPU!!.handleNewData(dataMPU)
-            addToGraphBufferMPU(mMPU!!)
+//            addToGraphBufferMPU(mMPU!!)
             mSaveFileMPU!!.exportDataWithTimestampMPU(mMPU!!.characteristicDataPacketBytes)
             if (mSaveFileMPU!!.mLinesWrittenCurrentFile > 1048576) {
                 mSaveFileMPU!!.terminateDataFileWriter()
                 createNewFileMPU()
-            }
-        }
-
-        if (mCh1!!.chEnabled && mCh2!!.chEnabled) {
-            mEEGConnectedAllChannels = true
-            mCh1!!.chEnabled = false
-            mCh2!!.chEnabled = false
-            if (mCh1!!.characteristicDataPacketBytes != null && mCh2!!.characteristicDataPacketBytes != null) {
-                mPrimarySaveDataFile!!.writeToDisk(mCh1!!.characteristicDataPacketBytes, mCh2!!.characteristicDataPacketBytes)
-                if (mPrimarySaveDataFile!!.mLinesWrittenCurrentFile > 10800000) { //3 Hrs * 3600s * 1000sps
-                    mPrimarySaveDataFile!!.terminateDataFileWriter()
-                    createNewFile()
-                }
             }
         }
     }
@@ -568,18 +531,6 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
                         i += graphAdapter.sampleRate / 250
                     }
                 }
-            }
-        }
-        dataChannel.resetBuffer()
-    }
-
-    private fun addToGraphBufferMPU(dataChannel: DataChannel) {
-        if (dataChannel.dataBuffer!=null) {
-            for (i in 0 until dataChannel.dataBuffer!!.size / 12) {
-                mGraphAdapterMotionAX?.addDataPointTimeDomain(DataChannel.bytesToDoubleMPUAccel(dataChannel.dataBuffer!![12 * i], dataChannel.dataBuffer!![12 * i + 1]), mTimestampIdxMPU)
-                mGraphAdapterMotionAY?.addDataPointTimeDomain(DataChannel.bytesToDoubleMPUAccel(dataChannel.dataBuffer!![12 * i + 2], dataChannel.dataBuffer!![12 * i + 3]), mTimestampIdxMPU)
-                mGraphAdapterMotionAZ?.addDataPointTimeDomain(DataChannel.bytesToDoubleMPUAccel(dataChannel.dataBuffer!![12 * i + 4], dataChannel.dataBuffer!![12 * i + 5]), mTimestampIdxMPU)
-                mTimestampIdxMPU += 1
             }
         }
         dataChannel.resetBuffer()
@@ -757,15 +708,11 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
         }
     }
 
-//    private external fun jSSVEPCfilter(data: DoubleArray): FloatArray
-
     private external fun jdownSample(data: DoubleArray, sampleRate: Int): DoubleArray
 
     private external fun jecgBandStopFilter(data: DoubleArray): DoubleArray
 
     private external fun jmainInitialization(initialize: Boolean): Int
-
-//    private external fun jecgVarFilter(data_array: DoubleArray, sampleRate: Double, windowLength: Double): FloatArray
 
     companion object {
         val HZ = "0 Hz"
@@ -779,7 +726,6 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
         internal var mMPU: DataChannel? = null
         internal var mFilterData = false
         private var mPacketBuffer = 6
-        private var mTimestampIdxMPU = 0
         //RSSI:
         private val RSSI_UPDATE_TIME_INTERVAL = 2000
         var mSSVEPClass = 0.0
