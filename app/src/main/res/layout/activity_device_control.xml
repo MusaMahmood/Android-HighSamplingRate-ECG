@@ -68,13 +68,6 @@
                     ap:renderMode="use_background_thread" />
 
 
-                <com.androidplot.xy.XYPlot
-                    android:id="@+id/ecgTimeDomainXYPlot2"
-                    style="@style/APFullScreenGraph.Light.Minimalist"
-                    android:layout_width="fill_parent"
-                    android:layout_height="fill_parent"
-                    android:layout_weight="0.4"
-                    ap:renderMode="use_background_thread" />
         </LinearLayout>
 
         <com.androidplot.xy.XYPlot

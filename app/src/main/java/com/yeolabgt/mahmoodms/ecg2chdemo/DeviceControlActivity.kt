@@ -48,7 +48,7 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
     private var mGraphAdapterMotionAY: GraphAdapter? = null
     private var mGraphAdapterMotionAZ: GraphAdapter? = null
     private var mTimeDomainPlotAdapterCh1: XYPlotAdapter? = null
-    private var mTimeDomainPlotAdapterCh2: XYPlotAdapter? = null
+//    private var mTimeDomainPlotAdapterCh2: XYPlotAdapter? = null
     private var mMotionDataPlotAdapter: XYPlotAdapter? = null
     //Device Information
     private var mBleInitializedBoolean = false
@@ -259,14 +259,12 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
         mGraphAdapterMotionAY?.setPointWidth(2.toFloat())
         mGraphAdapterMotionAZ?.setPointWidth(2.toFloat())
         mTimeDomainPlotAdapterCh1 = XYPlotAdapter(findViewById(R.id.ecgTimeDomainXYPlot), false, if (mSampleRate < 1000) 4 * mSampleRate else 2000)
-        mTimeDomainPlotAdapterCh2 = XYPlotAdapter(findViewById(R.id.ecgTimeDomainXYPlot2),  false, if(mSampleRate < 1000) 4 * mSampleRate else 2000)
         mTimeDomainPlotAdapterCh1?.xyPlot?.addSeries(mGraphAdapterCh1!!.series, mGraphAdapterCh1!!.lineAndPointFormatter)
-        mTimeDomainPlotAdapterCh2?.xyPlot?.addSeries(mGraphAdapterCh2!!.series, mGraphAdapterCh2!!.lineAndPointFormatter)
         mMotionDataPlotAdapter = XYPlotAdapter(findViewById(R.id.motionDataPlot), "Time (s)", "Acc (g)", 375.0)
         mMotionDataPlotAdapter?.xyPlot!!.addSeries(mGraphAdapterMotionAX?.series, mGraphAdapterMotionAX?.lineAndPointFormatter)
         mMotionDataPlotAdapter?.xyPlot!!.addSeries(mGraphAdapterMotionAY?.series, mGraphAdapterMotionAY?.lineAndPointFormatter)
         mMotionDataPlotAdapter?.xyPlot!!.addSeries(mGraphAdapterMotionAZ?.series, mGraphAdapterMotionAZ?.lineAndPointFormatter)
-        val xyPlotList = listOf(mTimeDomainPlotAdapterCh1?.xyPlot, mTimeDomainPlotAdapterCh2?.xyPlot, mMotionDataPlotAdapter?.xyPlot)
+        val xyPlotList = listOf(mTimeDomainPlotAdapterCh1?.xyPlot, mMotionDataPlotAdapter?.xyPlot)
         mRedrawer = Redrawer(xyPlotList, 30f, false)
         mRedrawer!!.start()
         mGraphInitializedBoolean = true
@@ -395,7 +393,6 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
             }
 
             mTimeDomainPlotAdapterCh1!!.xyPlot?.redraw()
-            mTimeDomainPlotAdapterCh2!!.xyPlot?.redraw()
             mChannelSelect!!.isChecked = chSel
             mGraphAdapterCh1!!.plotData = chSel
             mGraphAdapterCh2!!.plotData = chSel
@@ -495,21 +492,9 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
             if (!mCh1!!.chEnabled) mCh1!!.chEnabled = true
             val mNewEEGdataBytes = characteristic.value
             getDataRateBytes(mNewEEGdataBytes.size)
-            if (mEEGConnectedAllChannels) {
-                mCh1!!.handleNewData(mNewEEGdataBytes)
-                addToGraphBuffer(mCh1!!, mGraphAdapterCh1)
-            }
-        }
-
-        if (AppConstant.CHAR_EEG_CH2_SIGNAL == characteristic.uuid) {
-            if (!mCh2!!.chEnabled) mCh2!!.chEnabled = true
-            val mNewEEGdataBytes = characteristic.value
-            val byteLength = mNewEEGdataBytes.size
-            getDataRateBytes(byteLength)
-            if (mEEGConnectedAllChannels) {
-                mCh2!!.handleNewData(mNewEEGdataBytes)
-                addToGraphBuffer(mCh2!!, mGraphAdapterCh2)
-            }
+            mCh1!!.handleNewData(mNewEEGdataBytes)
+            addToGraphBuffer(mCh1!!, mGraphAdapterCh1)
+            mPrimarySaveDataFile!!.writeToDisk(mCh1!!.characteristicDataPacketBytes)
         }
 
         if (AppConstant.CHAR_MPU_COMBINED == characteristic.uuid) {
