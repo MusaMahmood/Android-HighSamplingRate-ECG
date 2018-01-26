@@ -548,7 +548,7 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
             graphAdapter!!.clearPlot()
 
             for (i in filteredData.indices) { // gA.addDataPointTimeDomain(y,x)
-                graphAdapter.addDataPointTimeDomainAlt(filteredData[i].toDouble(), dataChannel.totalDataPointsReceived - (bufferLength - 1) + i)
+                graphAdapter.addDataPointTimeDomainAlt(filteredData[i], dataChannel.totalDataPointsReceived - (bufferLength - 1) + i)
             }
         } else {
             if (dataChannel.dataBuffer != null) {
