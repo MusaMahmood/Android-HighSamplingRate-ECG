@@ -1,4 +1,4 @@
-package com.yeolabgt.mahmoodms.ecg2chdemo
+package com.yeolabgt.mahmoodms.ecgmpu1chdemo
 
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.le.ScanRecord

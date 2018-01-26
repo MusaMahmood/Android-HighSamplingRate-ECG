@@ -1,4 +1,4 @@
-package com.yeolabgt.mahmoodms.ecg2chdemo
+package com.yeolabgt.mahmoodms.ecgmpu1chdemo
 
 import android.app.Activity
 import android.bluetooth.BluetoothDevice
@@ -506,19 +506,6 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
             if (mSaveFileMPU!!.mLinesWrittenCurrentFile > 1048576) {
                 mSaveFileMPU!!.terminateDataFileWriter()
                 createNewFileMPU()
-            }
-        }
-
-        if (mCh1!!.chEnabled && mCh2!!.chEnabled) {
-            mEEGConnectedAllChannels = true
-            mCh1!!.chEnabled = false
-            mCh2!!.chEnabled = false
-            if (mCh1!!.characteristicDataPacketBytes != null && mCh2!!.characteristicDataPacketBytes != null) {
-                mPrimarySaveDataFile!!.writeToDisk(mCh1!!.characteristicDataPacketBytes, mCh2!!.characteristicDataPacketBytes)
-                if (mPrimarySaveDataFile!!.mLinesWrittenCurrentFile > 1048576) {
-                    mPrimarySaveDataFile!!.terminateDataFileWriter()
-                    createNewFile()
-                }
             }
         }
     }
