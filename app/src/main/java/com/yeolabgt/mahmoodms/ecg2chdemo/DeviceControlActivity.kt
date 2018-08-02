@@ -15,6 +15,7 @@ import android.graphics.Typeface
 import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
 import android.os.Handler
 import android.support.v4.app.NavUtils
 import android.support.v4.content.FileProvider
@@ -29,6 +30,9 @@ import android.widget.ToggleButton
 
 import com.androidplot.util.Redrawer
 import com.yeolabgt.mahmoodms.actblelibrary.ActBle
+import kotlinx.android.synthetic.main.activity_device_control.*
+import org.tensorflow.contrib.android.TensorFlowInferenceInterface
+import java.io.File
 
 import java.io.IOException
 import java.text.SimpleDateFormat
@@ -76,7 +80,19 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
     //Data Variables:
     private val batteryWarning = 20//
     private var dataRate: Double = 0.toDouble()
-    //Play Sound:
+    // Tensorflow Implementation:
+    // Node Keys
+    private val INPUT_DATA_FEED_KEY = "reshape_1_input_1"
+    private val OUTPUT_DATA_FEED_KEY = "dense_2_1/truediv"
+    // Other Variables.
+    private var mTFRunModel = false
+    private var mTensorFlowInferenceInterface: TensorFlowInferenceInterface? = null
+    private var mOutputScoresNames: Array<String>? = null
+    private var mTensorflowInputXDim = 1L
+    private var mTensorflowInputYDim = 1L
+    private var mTensorflowOutputXDim = 1L
+    private var mTensorflowOutputYDim = 1L
+    private var mNumberOfClassifierCalls = 0
 
     private val mTimeStamp: String
         get() = SimpleDateFormat("yyyy.MM.dd_HH.mm.ss", Locale.US).format(Date())
@@ -123,6 +139,44 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
             mGraphAdapterCh2!!.plotData = b
         }
         mExportButton.setOnClickListener { exportData() }
+        tensorflowClassificationSwitch.setOnCheckedChangeListener { _, b ->
+            if (b) {
+                //Enable Tensorflow Model
+                enableTensorflowModel()
+            } else {
+                mTFRunModel = false
+                mNumberOfClassifierCalls = 1
+                Toast.makeText(applicationContext, "Tensorflow Disabled", Toast.LENGTH_SHORT).show()
+            }
+        }
+        mOutputScoresNames = arrayOf(OUTPUT_DATA_FEED_KEY)
+    }
+
+    private fun enableTensorflowModel() {
+        val classifyModelBinary = "opt_rat_2cnn.c1d_s2s_64lr0.01ep40_v1.pb"
+        val classifyModelPath = Environment.getExternalStorageDirectory().absolutePath +
+                "/Download/tensorflow_assets/ecg_classify/" + classifyModelBinary
+        Log.e(TAG, "Tensorflow Generative Model Path: $classifyModelPath")
+        mTensorflowInputXDim = 2000
+        mTensorflowInputYDim = 2
+        mTensorflowOutputXDim = mTensorflowInputXDim
+        mTensorflowOutputYDim = 1
+        when {
+            File(classifyModelPath).exists() -> {
+                mTensorFlowInferenceInterface = TensorFlowInferenceInterface(assets, classifyModelPath)
+                // Reset counter:
+                mNumberOfClassifierCalls = 1
+                mTFRunModel = true
+                Log.i(TAG, "Tensorflow - Custom Classification Model Loaded: $classifyModelBinary")
+            }
+            else -> {
+                mTFRunModel = false
+                Toast.makeText(applicationContext, "No TF Model Found!", Toast.LENGTH_LONG).show()
+            }
+        }
+        if (mTFRunModel) {
+            Toast.makeText(applicationContext, "Tensorflow Generative Model Loaded!", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun exportData() {
@@ -223,24 +277,24 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
         val directory = "/ECGData"
         val fileNameTimeStamped = "ECGData_" + mTimeStamp + "_" + mSampleRate.toString() + "Hz"
         if (mPrimarySaveDataFile == null) {
-            Log.e(TAG, "fileTimeStamp: " + fileNameTimeStamped)
+            Log.e(TAG, "fileTimeStamp: $fileNameTimeStamped")
             mPrimarySaveDataFile = SaveDataFile(directory, fileNameTimeStamped,
                     24, 1.toDouble() / mSampleRate, true, false)
         } else if (!mPrimarySaveDataFile!!.initialized) {
-            Log.e(TAG, "New Filename: " + fileNameTimeStamped)
+            Log.e(TAG, "New Filename: $fileNameTimeStamped")
             mPrimarySaveDataFile?.createNewFile(directory, fileNameTimeStamped)
         }
     }
 
     private fun createNewFileMPU() {
         val directory = "/MPUData"
-        val fileNameTimeStamped = "MPUData_" + mTimeStamp
+        val fileNameTimeStamped = "MPUData_$mTimeStamp"
         if (mSaveFileMPU == null) {
-            Log.e(TAG, "fileTimeStamp: " + fileNameTimeStamped)
+            Log.e(TAG, "fileTimeStamp: $fileNameTimeStamped")
             mSaveFileMPU = SaveDataFile(directory, fileNameTimeStamped,
                     16, 0.032, true, false)
         } else if (!mSaveFileMPU!!.initialized) {
-            Log.e(TAG, "New Filename: " + fileNameTimeStamped)
+            Log.e(TAG, "New Filename: $fileNameTimeStamped")
             mSaveFileMPU?.createNewFile(directory, fileNameTimeStamped)
         }
     }
@@ -454,9 +508,7 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
 
                 if (AppConstant.SERVICE_MPU == service.uuid) {
                     mActBle!!.setCharacteristicNotifications(gatt, service.getCharacteristic(AppConstant.CHAR_MPU_COMBINED), true)
-                    //TODO: INITIALIZE MPU FILE HERE:
                     mMPU = DataChannel(false, true, 0)
-//                    mSaveFileMPU = null
                     createNewFileMPU()
                 }
             }
@@ -472,11 +524,11 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
                 if (characteristic.value != null) {
                     val batteryLevel = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT16, 0)
                     updateBatteryStatus(batteryLevel)
-                    Log.i(TAG, "Battery Level :: " + batteryLevel)
+                    Log.i(TAG, "Battery Level :: $batteryLevel")
                 }
             }
         } else {
-            Log.e(TAG, "onCharacteristic Read Error" + status)
+            Log.e(TAG, "onCharacteristic Read Error $status")
         }
     }
 
@@ -541,7 +593,6 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
     private fun addToGraphBuffer(dataChannel: DataChannel, graphAdapter: GraphAdapter?) {
         if (mFilterData && dataChannel.totalDataPointsReceived > 4* mSampleRate/* && mSampleRate < 1000*/) {
             val bufferLength = 4 * 250
-            //TODO: Downsample, then filter, then plot:
             val filterArray = jdownSample(dataChannel.classificationBuffer, mSampleRate)
             graphAdapter?.setSeriesHistoryDataPoints(bufferLength)
             val filteredData = jecgBandStopFilter(filterArray)
@@ -694,17 +745,17 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
     }
 
     override fun onCharacteristicWrite(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, status: Int) {
-        Log.i(TAG, "onCharacteristicWrite :: Status:: " + status)
+        Log.i(TAG, "onCharacteristicWrite :: Status:: $status")
     }
 
     override fun onDescriptorWrite(gatt: BluetoothGatt, descriptor: BluetoothGattDescriptor, status: Int) {}
 
     override fun onDescriptorRead(gatt: BluetoothGatt, descriptor: BluetoothGattDescriptor, status: Int) {
-        Log.i(TAG, "onDescriptorRead :: Status:: " + status)
+        Log.i(TAG, "onDescriptorRead :: Status:: $status")
     }
 
     override fun onError(errorMessage: String) {
-        Log.e(TAG, "Error:: " + errorMessage)
+        Log.e(TAG, "Error:: $errorMessage")
     }
 
     private fun updateConnectionState(status: String) {
@@ -734,7 +785,7 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
             if (finalPercent <= batteryWarning) {
                 mBatteryLevel!!.setTextColor(Color.RED)
                 mBatteryLevel!!.setTypeface(null, Typeface.BOLD)
-                Toast.makeText(applicationContext, "Charge Battery, Battery Low " + status, Toast.LENGTH_SHORT).show()
+                Toast.makeText(applicationContext, "Charge Battery, Battery Low $status", Toast.LENGTH_SHORT).show()
             } else {
                 mBatteryLevel!!.setTextColor(Color.GREEN)
                 mBatteryLevel!!.setTypeface(null, Typeface.BOLD)
@@ -770,7 +821,7 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
 //    private external fun jecgVarFilter(data_array: DoubleArray, sampleRate: Double, windowLength: Double): FloatArray
 
     companion object {
-        val HZ = "0 Hz"
+        const val HZ = "0 Hz"
         private val TAG = DeviceControlActivity::class.java.simpleName
         var mRedrawer: Redrawer? = null
         // Power Spectrum Graph Data:
@@ -783,7 +834,7 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
         private var mPacketBuffer = 6
         private var mTimestampIdxMPU = 0
         //RSSI:
-        private val RSSI_UPDATE_TIME_INTERVAL = 2000
+        const val RSSI_UPDATE_TIME_INTERVAL = 2000
         var mSSVEPClass = 0.0
         //Save Data File
         private var mPrimarySaveDataFile: SaveDataFile? = null
