@@ -79,6 +79,20 @@ constructor(directory: String, fileName: String, byteResolution: Int, increment:
         }
     }
 
+    fun writeToDiskFloat(vararg floatArrays: FloatArray?) {
+        val len = floatArrays.size
+        val floats = Array(len) {FloatArray(floatArrays[0]!!.size)}
+        for (f in 0 until len) {
+            floats[f] = floatArrays[f]!!
+        }
+
+        try {
+            exportFile(*floats)
+        } catch (e: IOException) {
+            Log.e("IOException", e.toString())
+        }
+    }
+
     /**
      *
      * @param bytes split into 6 colns:

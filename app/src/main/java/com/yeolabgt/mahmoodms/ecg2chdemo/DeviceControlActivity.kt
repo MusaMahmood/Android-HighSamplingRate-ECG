@@ -29,6 +29,7 @@ import android.widget.Toast
 import android.widget.ToggleButton
 
 import com.androidplot.util.Redrawer
+import com.google.common.primitives.Floats
 import com.yeolabgt.mahmoodms.actblelibrary.ActBle
 import kotlinx.android.synthetic.main.activity_device_control.*
 import org.tensorflow.contrib.android.TensorFlowInferenceInterface
@@ -78,12 +79,12 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
     private val mTimerHandler = Handler()
     private var mTimerEnabled = false
     //Data Variables:
-    private val batteryWarning = 20//
+    private val batteryWarning = 20
     private var dataRate: Double = 0.toDouble()
     // Tensorflow Implementation:
     // Node Keys
     private val INPUT_DATA_FEED_KEY = "reshape_1_input_1"
-    private val OUTPUT_DATA_FEED_KEY = "dense_2_1/truediv"
+    private val OUTPUT_DATA_FEED_KEY = "reshape_3_1/Reshape"
     // Other Variables.
     private var mTFRunModel = false
     private var mTensorFlowInferenceInterface: TensorFlowInferenceInterface? = null
@@ -153,10 +154,10 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
     }
 
     private fun enableTensorflowModel() {
-        val classifyModelBinary = "opt_rat_2cnn.c1d_s2s_64lr0.01ep40_v1.pb"
+        val classifyModelBinary = "opt_rat_2cnn.c1d_dense.lr0.005ep50_v1.pb"
         val classifyModelPath = Environment.getExternalStorageDirectory().absolutePath +
                 "/Download/tensorflow_assets/ecg_classify/" + classifyModelBinary
-        Log.e(TAG, "Tensorflow Generative Model Path: $classifyModelPath")
+        Log.e(TAG, "Tensorflow Model Path: $classifyModelPath")
         mTensorflowInputXDim = 2000
         mTensorflowInputYDim = 2
         mTensorflowOutputXDim = mTensorflowInputXDim
@@ -175,9 +176,47 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
             }
         }
         if (mTFRunModel) {
-            Toast.makeText(applicationContext, "Tensorflow Generative Model Loaded!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(applicationContext, "Tensorflow Classification Model Loaded!", Toast.LENGTH_SHORT).show()
         }
     }
+
+    private val mClassifyThread = Runnable {
+        if (mTFRunModel) {
+            val outputProbabilities = FloatArray(2)  // 2000, 2
+            val ecgRawDoublesCh1 = mCh1!!.classificationBuffer
+            val ecgRawDoublesCh2 = mCh2!!.classificationBuffer
+            // Filter, level and return as floats:
+            val inputArrayCh1 = downsampleFilterRescale(ecgRawDoublesCh1)
+            val inputArrayCh2 = downsampleFilterRescale(ecgRawDoublesCh2)
+            val inputArray = Floats.concat(inputArrayCh1, inputArrayCh2)
+            Log.e(TAG, "OrigArray: " + Arrays.toString(inputArray))
+            mTensorFlowInferenceInterface!!.feed(INPUT_DATA_FEED_KEY, inputArray, 1L, mTensorflowInputXDim, mTensorflowInputYDim)
+            mTensorFlowInferenceInterface!!.run(mOutputScoresNames)
+            mTensorFlowInferenceInterface!!.fetch(OUTPUT_DATA_FEED_KEY, outputProbabilities)
+            // Save outputProbabilities
+            Log.e(TAG, "OutputArray: " + Arrays.toString(outputProbabilities))
+            val outProbCol1 = FloatArray(2000)
+            val outProbCol2 = FloatArray(2000)
+            outProbCol1.fill(outputProbabilities[0])
+            outProbCol2.fill(outputProbabilities[1])
+            // Save data:
+            mTensorflowOutputsSaveFile?.writeToDiskFloat(inputArrayCh1, inputArrayCh2, outProbCol1, outProbCol2)
+        }
+    }
+
+    private fun downsampleFilterRescale(X: DoubleArray): FloatArray {
+        if (mSampleRate == 1000) {
+            val Y_resample = jecgResample(X, mSampleRate.toDouble())
+            return jecgFiltRescale(Y_resample)
+        } else if (mSampleRate == 250) {
+            return jecgFiltRescale(X)
+        } else {
+            // Incompatible Sampling Rate
+            Log.e(TAG, "ERROR: incompatible sampling rate! (downsampleFilterRescale)")
+            return FloatArray(0)
+        }
+    }
+
 
     private fun exportData() {
         try {
@@ -194,6 +233,10 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
             val uii2 = FileProvider.getUriForFile(context, context.packageName + ".provider", mSaveFileMPU!!.file)
             files.add(uii2)
         }
+        if (mTensorflowOutputsSaveFile != null) {
+            val uii3 = FileProvider.getUriForFile(context, context.packageName + ".provider", mTensorflowOutputsSaveFile!!.file)
+            files.add(uii3)
+        }
         val exportData = Intent(Intent.ACTION_SEND_MULTIPLE)
         exportData.putExtra(Intent.EXTRA_SUBJECT, "ECG Sensor Data Export Details")
         exportData.putParcelableArrayListExtra(Intent.EXTRA_STREAM, files)
@@ -203,6 +246,7 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
 
     @Throws(IOException::class)
     private fun terminateDataFileWriter() {
+        mTensorflowOutputsSaveFile?.terminateDataFileWriter()
         mPrimarySaveDataFile?.terminateDataFileWriter()
         mSaveFileMPU?.terminateDataFileWriter()
     }
@@ -283,6 +327,14 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
         } else if (!mPrimarySaveDataFile!!.initialized) {
             Log.e(TAG, "New Filename: $fileNameTimeStamped")
             mPrimarySaveDataFile?.createNewFile(directory, fileNameTimeStamped)
+        }
+        // Tensorflow Stuff:
+        val directory2 = "/ECG_TF_data_out"
+        val fileNameTimeStamped2 = "ECG_TF_data_" + mTimeStamp + "_" + mSampleRate.toString() + "Hz"
+        if (mTensorflowOutputsSaveFile == null) {
+            Log.e(TAG, "fileTimeStamp: $fileNameTimeStamped2")
+            mTensorflowOutputsSaveFile = SaveDataFile(directory2, fileNameTimeStamped2, 24, 1.toDouble()/250.0,
+                    saveTimestamps = false, includeClass = false)
         }
     }
 
@@ -534,8 +586,8 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
 
     override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
         if (mCh1 == null || mCh2 == null) {
-            mCh1 = DataChannel(false, mMSBFirst, 4 * mSampleRate)
-            mCh2 = DataChannel(false, mMSBFirst, 4 * mSampleRate)
+            mCh1 = DataChannel(false, mMSBFirst, 8 * mSampleRate)
+            mCh2 = DataChannel(false, mMSBFirst, 8 * mSampleRate)
         }
 
         if (AppConstant.CHAR_BATTERY_LEVEL == characteristic.uuid) {
@@ -578,6 +630,12 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
 
         if (mCh1!!.chEnabled && mCh2!!.chEnabled) {
             mEEGConnectedAllChannels = true
+            if (mCh2!!.totalDataPointsReceived % 2004*4 == 0
+                    && mCh2!!.totalDataPointsReceived != 0) {
+                Log.e(TAG, "Total datapoints: ${mCh1!!.totalDataPointsReceived}")
+                val classifyTaskThread = Thread(mClassifyThread)
+                classifyTaskThread.start()
+            }
             mCh1!!.chEnabled = false
             mCh2!!.chEnabled = false
             if (mCh1!!.characteristicDataPacketBytes != null && mCh2!!.characteristicDataPacketBytes != null) {
@@ -591,7 +649,7 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
     }
 
     private fun addToGraphBuffer(dataChannel: DataChannel, graphAdapter: GraphAdapter?) {
-        if (mFilterData && dataChannel.totalDataPointsReceived > 4* mSampleRate/* && mSampleRate < 1000*/) {
+        if (mFilterData && dataChannel.totalDataPointsReceived > 4 * mSampleRate) {
             val bufferLength = 4 * 250
             val filterArray = jdownSample(dataChannel.classificationBuffer, mSampleRate)
             graphAdapter?.setSeriesHistoryDataPoints(bufferLength)
@@ -810,15 +868,15 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
         }
     }
 
-//    private external fun jSSVEPCfilter(data: DoubleArray): FloatArray
-
     private external fun jdownSample(data: DoubleArray, sampleRate: Int): DoubleArray
 
     private external fun jecgBandStopFilter(data: DoubleArray): DoubleArray
 
     private external fun jmainInitialization(initialize: Boolean): Int
 
-//    private external fun jecgVarFilter(data_array: DoubleArray, sampleRate: Double, windowLength: Double): FloatArray
+    private external fun jecgFiltRescale(data: DoubleArray): FloatArray
+
+    private external fun jecgResample(data: DoubleArray, Fs: Double): DoubleArray
 
     companion object {
         const val HZ = "0 Hz"
@@ -837,6 +895,7 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
         const val RSSI_UPDATE_TIME_INTERVAL = 2000
         var mSSVEPClass = 0.0
         //Save Data File
+        private var mTensorflowOutputsSaveFile: SaveDataFile? = null
         private var mPrimarySaveDataFile: SaveDataFile? = null
         private var mSaveFileMPU: SaveDataFile? = null
 
