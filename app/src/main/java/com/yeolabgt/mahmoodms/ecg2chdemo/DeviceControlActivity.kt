@@ -31,7 +31,7 @@ import android.widget.ToggleButton
 import com.androidplot.util.Redrawer
 import com.google.common.primitives.Floats
 import com.yeolabgt.mahmoodms.actblelibrary.ActBle
-import kotlinx.android.synthetic.main.activity_device_control.*
+import kotlinx.android.synthetic.main.activity_device_control_2.*
 import org.tensorflow.contrib.android.TensorFlowInferenceInterface
 import java.io.File
 
@@ -100,7 +100,7 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
 
     public override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_device_control)
+        setContentView(R.layout.activity_device_control_2)
         //Set orientation of device based on screen type/size:
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
         //Receive Intents:

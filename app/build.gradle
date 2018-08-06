@@ -97,4 +97,5 @@ dependencies {
     if (nativeBuildSystem == 'cmake' || nativeBuildSystem == 'none') {
         compile 'org.tensorflow:tensorflow-android:+'
     }
+    implementation 'com.android.support.constraint:constraint-layout:1.1.2'
 }
