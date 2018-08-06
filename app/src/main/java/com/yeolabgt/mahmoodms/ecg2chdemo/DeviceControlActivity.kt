@@ -387,8 +387,8 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
         mGraphAdapterCh1!!.setxAxisIncrementFromSampleRate(mSampleRate)
         mGraphAdapterCh2!!.setxAxisIncrementFromSampleRate(mSampleRate)
 
-        mGraphAdapterCh1!!.setSeriesHistoryDataPoints(1250)
-        mGraphAdapterCh2!!.setSeriesHistoryDataPoints(1250)
+        mGraphAdapterCh1!!.setSeriesHistoryDataPoints(1000)
+        mGraphAdapterCh2!!.setSeriesHistoryDataPoints(1000)
     }
 
     private fun setNameAddress(name_action: String?, address_action: String?) {
@@ -601,7 +601,9 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
             getDataRateBytes(mNewEEGdataBytes.size)
             if (mEEGConnectedAllChannels) {
                 mCh1!!.handleNewData(mNewEEGdataBytes)
-                addToGraphBuffer(mCh1!!, mGraphAdapterCh1)
+                if (mCh1!!.packetCounter == 20.toShort()) {
+                    addToGraphBuffer(mCh1!!, mGraphAdapterCh1)
+                }
             }
         }
 
@@ -612,7 +614,9 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
             getDataRateBytes(byteLength)
             if (mEEGConnectedAllChannels) {
                 mCh2!!.handleNewData(mNewEEGdataBytes)
-                addToGraphBuffer(mCh2!!, mGraphAdapterCh2)
+                if (mCh2!!.packetCounter == 20.toShort()) {
+                    addToGraphBuffer(mCh2!!, mGraphAdapterCh2)
+                }
             }
         }
 
@@ -655,13 +659,12 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
             graphAdapter?.setSeriesHistoryDataPoints(bufferLength)
             val filteredData = jecgBandStopFilter(filterArray)
             graphAdapter!!.clearPlot()
-
             for (i in filteredData.indices) { // gA.addDataPointTimeDomain(y,x)
                 graphAdapter.addDataPointTimeDomainAlt(filteredData[i], dataChannel.totalDataPointsReceived - (bufferLength - 1) + i)
             }
         } else {
             if (dataChannel.dataBuffer != null) {
-                graphAdapter?.setSeriesHistoryDataPoints(1250)
+                Log.e(TAG, "Series.size: ${graphAdapter?.series?.size()}")
                 if (mPrimarySaveDataFile!!.resolutionBits == 24) {
                     var i = 0
                     while (i < dataChannel.dataBuffer!!.size / 3) {
