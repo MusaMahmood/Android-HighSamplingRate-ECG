@@ -218,15 +218,18 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
     }
 
     private fun downsampleFilterRescale(X: DoubleArray): FloatArray {
-        if (mSampleRate == 1000) {
-            val Y_resample = jecgResample(X, mSampleRate.toDouble())
-            return jecgFiltRescale(Y_resample)
-        } else if (mSampleRate == 250) {
-            return jecgFiltRescale(X)
-        } else {
-            // Incompatible Sampling Rate
-            Log.e(TAG, "ERROR: incompatible sampling rate! (downsampleFilterRescale)")
-            return FloatArray(0)
+        return when (mSampleRate) {
+            1000 -> {
+                jecgFiltRescale(jecgResample(X, mSampleRate.toDouble()))
+            }
+            250 -> {
+                jecgFiltRescale(X)
+            }
+            else -> {
+                // Incompatible Sampling Rate
+                Log.e(TAG, "ERROR: incompatible sampling rate! (downsampleFilterRescale)")
+                FloatArray(0)
+            }
         }
     }
 
@@ -239,7 +242,7 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
         popupWindow = PopupWindow(popupView, ActionBar.LayoutParams.WRAP_CONTENT, ActionBar.LayoutParams.WRAP_CONTENT)
         popupWindow.isFocusable = true
         popupWindow.showAtLocation(view, Gravity.CENTER, 0, 0)
-        popupView.setOnTouchListener { v, event ->
+        popupView.setOnTouchListener { _, event ->
             if (event?.action == MotionEvent.ACTION_DOWN) {
                 popupWindow.dismiss()
                 return@setOnTouchListener true
