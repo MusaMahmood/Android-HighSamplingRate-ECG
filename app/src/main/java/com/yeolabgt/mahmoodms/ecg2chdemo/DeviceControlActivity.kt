@@ -140,6 +140,7 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
             mGraphAdapterCh2!!.plotData = b
         }
         mExportButton.setOnClickListener { exportData() }
+        enableTensorflowModel()
         tensorflowClassificationSwitch.setOnCheckedChangeListener { _, b ->
             if (b) {
                 //Enable Tensorflow Model
@@ -197,10 +198,17 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
             Log.e(TAG, "OutputArray: " + Arrays.toString(outputProbabilities))
             val outProbCol1 = FloatArray(2000)
             val outProbCol2 = FloatArray(2000)
+            val firstTimeStamp = mCh1!!.totalDataPointsReceived - 2000
+            val outTimeStamps = FloatArray(2000)
+            for (i in 0 until 2000) {
+                outTimeStamps[i] = ((firstTimeStamp + i).toDouble() * (1.0 / mSampleRate.toDouble())).toFloat()
+            }
             outProbCol1.fill(outputProbabilities[0])
             outProbCol2.fill(outputProbabilities[1])
+            Log.e(TAG, "firstTimeStampe = ${Arrays.toString(outTimeStamps)}")
             // Save data:
-            mTensorflowOutputsSaveFile?.writeToDiskFloat(inputArrayCh1, inputArrayCh2, outProbCol1, outProbCol2)
+            // TODO: Save Timestamps as Well
+            mTensorflowOutputsSaveFile?.writeToDiskFloat(outTimeStamps, inputArrayCh1, inputArrayCh2, outProbCol1, outProbCol2)
         }
     }
 
@@ -229,7 +237,7 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
         val context = applicationContext
         val uii = FileProvider.getUriForFile(context, context.packageName + ".provider", mPrimarySaveDataFile!!.file)
         files.add(uii)
-        if(mSaveFileMPU!=null) {
+        if (mSaveFileMPU != null) {
             val uii2 = FileProvider.getUriForFile(context, context.packageName + ".provider", mSaveFileMPU!!.file)
             files.add(uii2)
         }
@@ -333,7 +341,7 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
         val fileNameTimeStamped2 = "ECG_TF_data_" + mTimeStamp + "_" + mSampleRate.toString() + "Hz"
         if (mTensorflowOutputsSaveFile == null) {
             Log.e(TAG, "fileTimeStamp: $fileNameTimeStamped2")
-            mTensorflowOutputsSaveFile = SaveDataFile(directory2, fileNameTimeStamped2, 24, 1.toDouble()/250.0,
+            mTensorflowOutputsSaveFile = SaveDataFile(directory2, fileNameTimeStamped2, 24, 1.toDouble() / 250.0,
                     saveTimestamps = false, includeClass = false)
         }
     }
@@ -365,7 +373,7 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
         mGraphAdapterMotionAY?.setPointWidth(2.toFloat())
         mGraphAdapterMotionAZ?.setPointWidth(2.toFloat())
         mTimeDomainPlotAdapterCh1 = XYPlotAdapter(findViewById(R.id.ecgTimeDomainXYPlot), false, if (mSampleRate < 1000) 4 * mSampleRate else 2000)
-        mTimeDomainPlotAdapterCh2 = XYPlotAdapter(findViewById(R.id.ecgTimeDomainXYPlot2),  false, if(mSampleRate < 1000) 4 * mSampleRate else 2000)
+        mTimeDomainPlotAdapterCh2 = XYPlotAdapter(findViewById(R.id.ecgTimeDomainXYPlot2), false, if (mSampleRate < 1000) 4 * mSampleRate else 2000)
         mTimeDomainPlotAdapterCh1?.xyPlot?.addSeries(mGraphAdapterCh1!!.series, mGraphAdapterCh1!!.lineAndPointFormatter)
         mTimeDomainPlotAdapterCh2?.xyPlot?.addSeries(mGraphAdapterCh2!!.series, mGraphAdapterCh2!!.lineAndPointFormatter)
         mMotionDataPlotAdapter = XYPlotAdapter(findViewById(R.id.motionDataPlot), "Time (s)", "Acc (g)", 375.0)
@@ -634,7 +642,7 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
 
         if (mCh1!!.chEnabled && mCh2!!.chEnabled) {
             mEEGConnectedAllChannels = true
-            if (mCh2!!.totalDataPointsReceived % 2004*4 == 0
+            if (mCh2!!.totalDataPointsReceived % 2004 * 4 == 0
                     && mCh2!!.totalDataPointsReceived != 0) {
                 Log.e(TAG, "Total datapoints: ${mCh1!!.totalDataPointsReceived}")
                 val classifyTaskThread = Thread(mClassifyThread)
@@ -664,7 +672,6 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
             }
         } else {
             if (dataChannel.dataBuffer != null) {
-                Log.e(TAG, "Series.size: ${graphAdapter?.series?.size()}")
                 if (mPrimarySaveDataFile!!.resolutionBits == 24) {
                     var i = 0
                     while (i < dataChannel.dataBuffer!!.size / 3) {
@@ -688,7 +695,7 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
     }
 
     private fun addToGraphBufferMPU(dataChannel: DataChannel) {
-        if (dataChannel.dataBuffer!=null) {
+        if (dataChannel.dataBuffer != null) {
             for (i in 0 until dataChannel.dataBuffer!!.size / 12) {
                 mGraphAdapterMotionAX?.addDataPointTimeDomain(DataChannel.bytesToDoubleMPUAccel(dataChannel.dataBuffer!![12 * i], dataChannel.dataBuffer!![12 * i + 1]), mTimestampIdxMPU)
                 mGraphAdapterMotionAY?.addDataPointTimeDomain(DataChannel.bytesToDoubleMPUAccel(dataChannel.dataBuffer!![12 * i + 2], dataChannel.dataBuffer!![12 * i + 3]), mTimestampIdxMPU)
