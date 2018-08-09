@@ -139,9 +139,6 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
             mGraphAdapterCh2!!.plotData = b
         }
         mExportButton.setOnClickListener { exportData() }
-        testButton.setOnClickListener { _ ->
-            showAlertPopup(findViewById(android.R.id.content))
-        }
         enableTensorflowModel()
         tensorflowClassificationSwitch.setOnCheckedChangeListener { _, b ->
             if (b) {
