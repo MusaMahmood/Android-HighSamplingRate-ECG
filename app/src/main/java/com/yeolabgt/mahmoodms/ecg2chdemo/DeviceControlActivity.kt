@@ -93,6 +93,7 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
 
 //    private var alertStatus = false
     private var popupWindow = PopupWindow()
+    private var showPopupAlerts = true
 
     private val mTimeStamp: String
         get() = SimpleDateFormat("yyyy.MM.dd_HH.mm.ss", Locale.US).format(Date())
@@ -133,10 +134,7 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
         //UI Listeners
         mChannelSelect = findViewById(R.id.toggleButtonGraph)
         mChannelSelect!!.setOnCheckedChangeListener { _, b ->
-            mGraphAdapterCh1!!.clearPlot()
-            mGraphAdapterCh2!!.clearPlot()
-            mGraphAdapterCh1!!.plotData = b
-            mGraphAdapterCh2!!.plotData = b
+            showPopupAlerts = b
         }
         mExportButton.setOnClickListener { exportData() }
         enableTensorflowModel()
@@ -208,7 +206,7 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
             // Save data:
             mTensorflowOutputsSaveFile?.writeToDiskFloat(outTimeStamps, inputArrayCh1, inputArrayCh2, outProbCol1, outProbCol2)
             Log.e(TAG, "Output: popupWindow.isShowing: ${popupWindow.isShowing}")
-            if (outputProbabilities[1] > 0.75 && !popupWindow.isShowing) {
+            if (outputProbabilities[1] > 0.75 && !popupWindow.isShowing && showPopupAlerts) {
                 runOnUiThread { showAlertPopup(findViewById(android.R.id.content)) }
             }
         }
