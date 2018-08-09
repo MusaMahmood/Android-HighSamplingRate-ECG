@@ -45,6 +45,14 @@
         ap:layout_constraintStart_toEndOf="@+id/toggleButtonGraph"
         ap:layout_constraintTop_toBottomOf="@+id/tensorflowClassificationSwitch" />
 
+    <Button
+        android:id="@+id/testButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Test"
+        ap:layout_constraintStart_toEndOf="@+id/tensorflowClassificationSwitch"
+        ap:layout_constraintTop_toTopOf="parent" />
+
     <TextView
         android:id="@+id/batteryText"
         android:layout_width="wrap_content"

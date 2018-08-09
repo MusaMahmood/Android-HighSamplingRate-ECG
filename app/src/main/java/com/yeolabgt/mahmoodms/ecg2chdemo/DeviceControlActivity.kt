@@ -1,5 +1,6 @@
 package com.yeolabgt.mahmoodms.ecg2chdemo
 
+import android.app.ActionBar
 import android.app.Activity
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGatt
@@ -20,13 +21,8 @@ import android.os.Handler
 import android.support.v4.app.NavUtils
 import android.support.v4.content.FileProvider
 import android.util.Log
-import android.view.Menu
-import android.view.MenuItem
-import android.view.WindowManager
-import android.widget.Button
-import android.widget.TextView
-import android.widget.Toast
-import android.widget.ToggleButton
+import android.view.*
+import android.widget.*
 
 import com.androidplot.util.Redrawer
 import com.google.common.primitives.Floats
@@ -95,6 +91,9 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
     private var mTensorflowOutputYDim = 1L
     private var mNumberOfClassifierCalls = 0
 
+//    private var alertStatus = false
+    private var popupWindow = PopupWindow()
+
     private val mTimeStamp: String
         get() = SimpleDateFormat("yyyy.MM.dd_HH.mm.ss", Locale.US).format(Date())
 
@@ -140,6 +139,9 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
             mGraphAdapterCh2!!.plotData = b
         }
         mExportButton.setOnClickListener { exportData() }
+        testButton.setOnClickListener { _ ->
+            showAlertPopup(findViewById(android.R.id.content))
+        }
         enableTensorflowModel()
         tensorflowClassificationSwitch.setOnCheckedChangeListener { _, b ->
             if (b) {
@@ -207,8 +209,11 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
             outProbCol2.fill(outputProbabilities[1])
             Log.e(TAG, "firstTimeStampe = ${Arrays.toString(outTimeStamps)}")
             // Save data:
-            // TODO: Save Timestamps as Well
             mTensorflowOutputsSaveFile?.writeToDiskFloat(outTimeStamps, inputArrayCh1, inputArrayCh2, outProbCol1, outProbCol2)
+            Log.e(TAG, "Output: popupWindow.isShowing: ${popupWindow.isShowing}")
+            if (outputProbabilities[1] > 0.75 && !popupWindow.isShowing) {
+                runOnUiThread { showAlertPopup(findViewById(android.R.id.content)) }
+            }
         }
     }
 
@@ -225,6 +230,24 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
         }
     }
 
+    private fun showAlertPopup(view: View) {
+        val inflater = getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
+        val popupView = inflater.inflate(R.layout.popup_layout, null)
+        val textView = popupView.findViewById<TextView>(R.id.alertMessage)
+        val textTemplate = "ECG Alert: \n Abnormality Detected"
+        textView.text = textTemplate
+        popupWindow = PopupWindow(popupView, ActionBar.LayoutParams.WRAP_CONTENT, ActionBar.LayoutParams.WRAP_CONTENT)
+        popupWindow.isFocusable = true
+        popupWindow.showAtLocation(view, Gravity.CENTER, 0, 0)
+        popupView.setOnTouchListener { v, event ->
+            if (event?.action == MotionEvent.ACTION_DOWN) {
+                popupWindow.dismiss()
+                return@setOnTouchListener true
+            } else {
+                return@setOnTouchListener false
+            }
+        }
+    }
 
     private fun exportData() {
         try {
