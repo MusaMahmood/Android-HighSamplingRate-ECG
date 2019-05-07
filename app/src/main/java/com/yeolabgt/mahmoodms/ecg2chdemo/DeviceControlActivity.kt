@@ -495,22 +495,27 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
             if (!mCh1!!.chEnabled) mCh1!!.chEnabled = true
             val mNewEEGdataBytes = characteristic.value
             getDataRateBytes(mNewEEGdataBytes.size)
-            if (mEEGConnectedAllChannels) {
-                mCh1!!.handleNewData(mNewEEGdataBytes)
+            mCh1!!.handleNewData(mNewEEGdataBytes)
+            if (mCh1!!.packetCounter % mPacketBuffer == 0) {
                 addToGraphBuffer(mCh1!!, mGraphAdapterCh1)
+            }
+            mPrimarySaveDataFile!!.writeToDisk(mCh1!!.characteristicDataPacketBytes)
+            if (mPrimarySaveDataFile!!.mLinesWrittenCurrentFile > 1048576) {
+                mPrimarySaveDataFile!!.terminateDataFileWriter()
+                createNewFile()
             }
         }
 
-        if (AppConstant.CHAR_EEG_CH2_SIGNAL == characteristic.uuid) {
-            if (!mCh2!!.chEnabled) mCh2!!.chEnabled = true
-            val mNewEEGdataBytes = characteristic.value
-            val byteLength = mNewEEGdataBytes.size
-            getDataRateBytes(byteLength)
-            if (mEEGConnectedAllChannels) {
-                mCh2!!.handleNewData(mNewEEGdataBytes)
-                addToGraphBuffer(mCh2!!, mGraphAdapterCh2)
-            }
-        }
+//        if (AppConstant.CHAR_EEG_CH2_SIGNAL == characteristic.uuid) {
+//            if (!mCh2!!.chEnabled) mCh2!!.chEnabled = true
+//            val mNewEEGdataBytes = characteristic.value
+//            val byteLength = mNewEEGdataBytes.size
+//            getDataRateBytes(byteLength)
+//            if (mEEGConnectedAllChannels) {
+//                mCh2!!.handleNewData(mNewEEGdataBytes)
+//                addToGraphBuffer(mCh2!!, mGraphAdapterCh2)
+//            }
+//        }
 
         if (AppConstant.CHAR_MPU_COMBINED == characteristic.uuid) {
             val dataMPU = characteristic.value
@@ -524,18 +529,18 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
             }
         }
 
-        if (mCh1!!.chEnabled && mCh2!!.chEnabled) {
-            mEEGConnectedAllChannels = true
-            mCh1!!.chEnabled = false
-            mCh2!!.chEnabled = false
-            if (mCh1!!.characteristicDataPacketBytes != null && mCh2!!.characteristicDataPacketBytes != null) {
-                mPrimarySaveDataFile!!.writeToDisk(mCh1!!.characteristicDataPacketBytes, mCh2!!.characteristicDataPacketBytes)
-                if (mPrimarySaveDataFile!!.mLinesWrittenCurrentFile > 1048576) {
-                    mPrimarySaveDataFile!!.terminateDataFileWriter()
-                    createNewFile()
-                }
-            }
-        }
+//        if (mCh1!!.chEnabled && mCh2!!.chEnabled) {
+//            mEEGConnectedAllChannels = true
+//            mCh1!!.chEnabled = false
+//            mCh2!!.chEnabled = false
+//            if (mCh1!!.characteristicDataPacketBytes != null && mCh2!!.characteristicDataPacketBytes != null) {
+//                mPrimarySaveDataFile!!.writeToDisk(mCh1!!.characteristicDataPacketBytes, mCh2!!.characteristicDataPacketBytes)
+//                if (mPrimarySaveDataFile!!.mLinesWrittenCurrentFile > 1048576) {
+//                    mPrimarySaveDataFile!!.terminateDataFileWriter()
+//                    createNewFile()
+//                }
+//            }
+//        }
     }
 
     private fun addToGraphBuffer(dataChannel: DataChannel, graphAdapter: GraphAdapter?) {
