@@ -544,36 +544,23 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
     }
 
     private fun addToGraphBuffer(dataChannel: DataChannel, graphAdapter: GraphAdapter?) {
-        if (mFilterData && dataChannel.totalDataPointsReceived > 4* mSampleRate/* && mSampleRate < 1000*/) {
-            val bufferLength = 4 * 250
-            //TODO: Downsample, then filter, then plot:
-            val filterArray = jdownSample(dataChannel.classificationBuffer, mSampleRate)
-            graphAdapter?.setSeriesHistoryDataPoints(bufferLength)
-            val filteredData = jecgBandStopFilter(filterArray)
-            graphAdapter!!.clearPlot()
-
-            for (i in filteredData.indices) { // gA.addDataPointTimeDomain(y,x)
-                graphAdapter.addDataPointTimeDomainAlt(filteredData[i], dataChannel.totalDataPointsReceived - (bufferLength - 1) + i)
-            }
-        } else {
-            if (dataChannel.dataBuffer != null) {
-                graphAdapter?.setSeriesHistoryDataPoints(1250)
-                if (mPrimarySaveDataFile!!.resolutionBits == 24) {
-                    var i = 0
-                    while (i < dataChannel.dataBuffer!!.size / 3) {
-                        graphAdapter!!.addDataPointTimeDomain(DataChannel.bytesToDouble(dataChannel.dataBuffer!![3 * i],
-                                dataChannel.dataBuffer!![3 * i + 1], dataChannel.dataBuffer!![3 * i + 2]),
-                                dataChannel.totalDataPointsReceived - dataChannel.dataBuffer!!.size / 3 + i)
-                        i += graphAdapter.sampleRate / 250
-                    }
-                } else if (mPrimarySaveDataFile!!.resolutionBits == 16) {
-                    var i = 0
-                    while (i < dataChannel.dataBuffer!!.size / 2) {
-                        graphAdapter!!.addDataPointTimeDomain(DataChannel.bytesToDouble(dataChannel.dataBuffer!![2 * i],
-                                dataChannel.dataBuffer!![2 * i + 1]),
-                                dataChannel.totalDataPointsReceived - dataChannel.dataBuffer!!.size / 2 + i)
-                        i += graphAdapter.sampleRate / 250
-                    }
+        if (dataChannel.dataBuffer != null) {
+            graphAdapter?.setSeriesHistoryDataPoints(1250)
+            if (mPrimarySaveDataFile!!.resolutionBits == 24) {
+                var i = 0
+                while (i < dataChannel.dataBuffer!!.size / 3) {
+                    graphAdapter!!.addDataPointTimeDomain(DataChannel.bytesToDouble(dataChannel.dataBuffer!![3 * i],
+                            dataChannel.dataBuffer!![3 * i + 1], dataChannel.dataBuffer!![3 * i + 2]),
+                            dataChannel.totalDataPointsReceived - dataChannel.dataBuffer!!.size / 3 + i)
+                    i += graphAdapter.sampleRate / 250
+                }
+            } else if (mPrimarySaveDataFile!!.resolutionBits == 16) {
+                var i = 0
+                while (i < dataChannel.dataBuffer!!.size / 2) {
+                    graphAdapter!!.addDataPointTimeDomain(DataChannel.bytesToDouble(dataChannel.dataBuffer!![2 * i],
+                            dataChannel.dataBuffer!![2 * i + 1]),
+                            dataChannel.totalDataPointsReceived - dataChannel.dataBuffer!!.size / 2 + i)
+                    i += graphAdapter.sampleRate / 250
                 }
             }
         }
