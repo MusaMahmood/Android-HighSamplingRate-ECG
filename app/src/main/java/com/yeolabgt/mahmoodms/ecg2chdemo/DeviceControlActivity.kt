@@ -495,8 +495,8 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
 
     override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
         if (mCh1 == null || mCh2 == null) {
-            mCh1 = DataChannel(false, mMSBFirst, 4 * mSampleRate)
-            mCh2 = DataChannel(false, mMSBFirst, 4 * mSampleRate)
+            mCh1 = DataChannel(false, mMSBFirst, 1 * mSampleRate)
+            mCh2 = DataChannel(false, mMSBFirst, 1 * mSampleRate)
         }
 
         if (AppConstant.CHAR_BATTERY_LEVEL == characteristic.uuid) {
@@ -510,35 +510,9 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
             getDataRateBytes(mNewEEGdataBytes.size)
             mCh1!!.handleNewData(mNewEEGdataBytes)
             if (mCh1!!.packetCounter % mPacketBuffer == 0) {
-                addToGraphBuffer(mCh1!!, mGraphAdapterCh1)
-            }
-            mPrimarySaveDataFile!!.writeToDisk(mCh1!!.characteristicDataPacketBytes)
-            if (mPrimarySaveDataFile!!.mLinesWrittenCurrentFile > 1048576) {
-                mPrimarySaveDataFile!!.terminateDataFileWriter()
-                createNewFile()
-            }
-        }
-
-//        if (AppConstant.CHAR_EEG_CH2_SIGNAL == characteristic.uuid) {
-//            if (!mCh2!!.chEnabled) mCh2!!.chEnabled = true
-//            val mNewEEGdataBytes = characteristic.value
-//            val byteLength = mNewEEGdataBytes.size
-//            getDataRateBytes(byteLength)
-//            if (mEEGConnectedAllChannels) {
-//                mCh2!!.handleNewData(mNewEEGdataBytes)
-//                addToGraphBuffer(mCh2!!, mGraphAdapterCh2)
-//            }
-//        }
-
-        if (AppConstant.CHAR_MPU_COMBINED == characteristic.uuid) {
-            val dataMPU = characteristic.value
-            getDataRateBytes2(dataMPU.size) //+=240
-            mMPU!!.handleNewData(dataMPU)
-            addToGraphBufferMPU(mMPU!!)
-            mSaveFileMPU!!.exportDataWithTimestampMPU(mMPU!!.characteristicDataPacketBytes)
-            if (mSaveFileMPU!!.mLinesWrittenCurrentFile > 1048576) {
-                mSaveFileMPU!!.terminateDataFileWriter()
-                createNewFileMPU()
+                //Save data:
+                mPrimarySaveDataFile!!.saveDoubleArray(mCh1!!.dataBufferDoubles!!)
+                addToGraphBuffer(mCh1!!, mGraphAdapterCh1) //Array is destroyed in this step
             }
         }
 
@@ -557,31 +531,18 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
     }
 
     private fun addToGraphBuffer(dataChannel: DataChannel, graphAdapter: GraphAdapter?) {
-        if (dataChannel.dataBuffer != null) {
-            graphAdapter?.setSeriesHistoryDataPoints(1250)
+        if (dataChannel.dataBufferDoubles != null) {
             var dataIncrement = 0
             var i = 0
-            while (i < dataChannel.dataBuffer!!.size / 3) {
-                graphBuffer[graphBufferIndex] = DataChannel.bytesToDouble(dataChannel.dataBuffer!![3 * i], dataChannel.dataBuffer!![3 * i + 1], dataChannel.dataBuffer!![3 * i + 2])
+            while (i < dataChannel.dataBufferDoubles!!.size) {
+                graphBuffer[graphBufferIndex] = dataChannel.dataBufferDoubles!![i]
                 graphBufferIndex++
                 if (graphBufferIndex==graphBufferMaxIndex) {
                     graphBufferIndex = 0
-                    graphAdapter!!.addDataPointTimeDomain(graphBuffer.average(), dataChannel.totalDataPointsReceived - dataChannel.dataBuffer!!.size / 3 + dataIncrement)
+                    graphAdapter!!.addDataPointTimeDomain(graphBuffer.average(), dataChannel.totalDataPointsReceived - dataChannel.dataBufferDoubles!!.size + dataIncrement)
                     dataIncrement += 16
                 }
                 i += 1
-            }
-        }
-        dataChannel.resetBuffer()
-    }
-
-    private fun addToGraphBufferMPU(dataChannel: DataChannel) {
-        if (dataChannel.dataBuffer!=null) {
-            for (i in 0 until dataChannel.dataBuffer!!.size / 12) {
-                mGraphAdapterMotionAX?.addDataPointTimeDomain(DataChannel.bytesToDoubleMPUAccel(dataChannel.dataBuffer!![12 * i], dataChannel.dataBuffer!![12 * i + 1]), mTimestampIdxMPU)
-                mGraphAdapterMotionAY?.addDataPointTimeDomain(DataChannel.bytesToDoubleMPUAccel(dataChannel.dataBuffer!![12 * i + 2], dataChannel.dataBuffer!![12 * i + 3]), mTimestampIdxMPU)
-                mGraphAdapterMotionAZ?.addDataPointTimeDomain(DataChannel.bytesToDoubleMPUAccel(dataChannel.dataBuffer!![12 * i + 4], dataChannel.dataBuffer!![12 * i + 5]), mTimestampIdxMPU)
-                mTimestampIdxMPU += 1
             }
         }
         dataChannel.resetBuffer()
@@ -599,17 +560,6 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
                 val s = "$dataRate Bytes/s"
                 mDataRate!!.text = s
             }
-        }
-    }
-
-    private fun getDataRateBytes2(bytes: Int) {
-        val mCurrentTime = System.currentTimeMillis()
-        points2 += bytes
-        if (mCurrentTime > mLastTime2 + 3000) {
-            val datarate2 = (points2 / 3).toDouble()
-            points2 = 0
-            mLastTime2 = mCurrentTime
-            Log.e(" DataRate 2(MPU):", "$datarate2 Bytes/s")
         }
     }
 
@@ -777,7 +727,6 @@ class DeviceControlActivity : Activity(), ActBle.ActBleListener {
         internal var mMPU: DataChannel? = null
         internal var mFilterData = false
         private var mPacketBuffer = 6
-        private var mTimestampIdxMPU = 0
         //RSSI:
         private const val RSSI_UPDATE_TIME_INTERVAL = 2000
         var mSSVEPClass = 0.0

@@ -1,6 +1,6 @@
 package com.yeolabgt.mahmoodms.ecg2chdemo
 
-import com.google.common.primitives.Bytes
+import com.google.common.primitives.Doubles
 
 /**
  * Created by mmahmood31 on 9/19/2017.
@@ -8,11 +8,10 @@ import com.google.common.primitives.Bytes
  */
 
 internal class DataChannel(var chEnabled: Boolean, MSBFirst: Boolean, //Classification:
-                           var classificationBufferSize: Int) {
-    var characteristicDataPacketBytes: ByteArray? = null
+                           private var classificationBufferSize: Int) {
+    var dataBufferDoubles: DoubleArray? = null
     var packetCounter: Short = 0
     var totalDataPointsReceived: Int = 0
-    var dataBuffer: ByteArray? = null
     var classificationBuffer: DoubleArray
     private var classificationBufferFloats: FloatArray
 
@@ -25,36 +24,47 @@ internal class DataChannel(var chEnabled: Boolean, MSBFirst: Boolean, //Classifi
     }
 
     /**
-     * If 'dataBuffer' is not null, concatenate new data using Guava lib
-     * else: initialize dataBuffer with new data.
+     * If 'dataBufferDoubles' is not null, concatenate new data using Guava lib
+     * else: initialize dataBufferDoubles with new data.
      *
      * @param newDataPacket new data packet received via BLE>
      */
     fun handleNewData(newDataPacket: ByteArray) {
-        this.characteristicDataPacketBytes = newDataPacket
-        if (this.dataBuffer != null) {
-            this.dataBuffer = Bytes.concat(this.dataBuffer, newDataPacket)
-        } else {
-            this.dataBuffer = newDataPacket
-        }
-        for (i in 0 until newDataPacket.size / 3) {
-            addToBuffer(bytesToDouble(newDataPacket[3 * i], newDataPacket[3 * i + 1], newDataPacket[3 * i + 2]))
-        }
         this.totalDataPointsReceived += newDataPacket.size / 3
+        val tempDoubleArray = DoubleArray(newDataPacket.size/3)
+        for (i in 0 until newDataPacket.size / 3) {
+            tempDoubleArray[i] = bytesToDouble(newDataPacket[3 * i], newDataPacket[3 * i + 1], newDataPacket[3 * i + 2])
+        }
+        addToDoublesBuffer(tempDoubleArray)
+        if (this.dataBufferDoubles != null) {
+            this.dataBufferDoubles = Doubles.concat(this.dataBufferDoubles, tempDoubleArray)
+        } else {
+            this.dataBufferDoubles = tempDoubleArray
+        }
         this.packetCounter++
     }
 
-    private fun addToBuffer(a: Double) {
+    private fun addToDoublesBuffer(dataBufferDouble: DoubleArray) {
         if (this.classificationBufferSize > 0) {
-            System.arraycopy(this.classificationBuffer, 1, this.classificationBuffer, 0, this.classificationBufferSize - 1) //shift backwards
-            System.arraycopy(this.classificationBufferFloats, 1, this.classificationBufferFloats, 0, this.classificationBufferSize - 1) //shift backwards
-            this.classificationBuffer[this.classificationBufferSize - 1] = a //add to front:
-            this.classificationBufferFloats[this.classificationBufferSize - 1] = a.toFloat()
+            val newDataPoints = dataBufferDouble.size
+            // Shift Data Backwards by N Amount
+            System.arraycopy(this.classificationBuffer, newDataPoints, this.classificationBuffer, 0, this.classificationBufferSize - newDataPoints)
+            // Copy new data to front of data
+            dataBufferDouble.copyInto(this.classificationBuffer, this.classificationBufferSize - newDataPoints, 0, newDataPoints)
         }
     }
 
+//    private fun addToBuffer(a: Double) {
+//        if (this.classificationBufferSize > 0) {
+//            System.arraycopy(this.classificationBuffer, 1, this.classificationBuffer, 0, this.classificationBufferSize - 1) //shift backwards
+//            System.arraycopy(this.classificationBufferFloats, 1, this.classificationBufferFloats, 0, this.classificationBufferSize - 1) //shift backwards
+//            this.classificationBuffer[this.classificationBufferSize - 1] = a //add to front:
+//            this.classificationBufferFloats[this.classificationBufferSize - 1] = a.toFloat()
+//        }
+//    }
+
     fun resetBuffer() {
-        this.dataBuffer = null
+        this.dataBufferDoubles = null
         this.packetCounter = 0
     }
 

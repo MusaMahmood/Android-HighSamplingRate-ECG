@@ -120,6 +120,17 @@ constructor(directory: String, fileName: String, byteResolution: Int, increment:
         }
     }
 
+    fun saveDoubleArray(vararg doubleArrays: DoubleArray) {
+        val columns = doubleArrays.size
+        val rows = doubleArrays[0].size
+        Log.e(TAG, "rows: $rows, colns: $columns")
+        try {
+            exportFile(*doubleArrays)
+        } catch (e: IOException) {
+            Log.e("IOException", e.toString())
+        }
+    }
+
     private fun writeToDiskDouble(vararg byteArrays: ByteArray?) {
         val len = byteArrays.size // Number of channels
         val doubles = if (this.resolutionBits==16)
@@ -177,7 +188,7 @@ constructor(directory: String, fileName: String, byteResolution: Int, increment:
     }
 
     @Throws(IOException::class)
-    private fun exportFile(vararg doubles: DoubleArray) {
+    fun exportFile(vararg doubles: DoubleArray) {
         val numDp = doubles[0].size
         val numChannels = doubles.size
         val columns = numChannels + ((if (this.includeClass) 1 else 0)
